@@ -64,8 +64,11 @@ if vim.fn.executable("lazygit") == 1 then
 	end, { desc = "Git Log (cwd)" })
 end
 
+-- VenvSelect
+vim.keymap.set("n", "<leader>cv", "<cmd>VenvSelect<cr>", { desc = "Select venv" })
+
 vim.keymap.set("n", "<leader>cl", "<cmd>LspInfo<cr>", { desc = "Lsp Info" })
-vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Goto Definition"})
+vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Goto Definition" })
 vim.keymap.set("n", "gr", vim.lsp.buf.references, { desc = "References", nowait = true })
 vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "Goto Implementation" })
 vim.keymap.set("n", "gy", vim.lsp.buf.type_definition, { desc = "Goto T[y]pe Definition" })
@@ -75,10 +78,10 @@ vim.keymap.set("n", "K", function()
 end, { desc = "Hover" })
 vim.keymap.set("n", "gK", function()
 	return vim.lsp.buf.signature_help()
-end, { desc = "Signature Help"})
+end, { desc = "Signature Help" })
 vim.keymap.set("i", "<c-k>", function()
 	return vim.lsp.buf.signature_help()
-end, { desc = "Signature Help"} )
+end, { desc = "Signature Help" })
 -- vim.keymap.set("n", "v", "<leader>ca", vim.lsp.buf.code_action, { desc = "Code Action"})
 -- vim.keymap.set("n", "v", "<leader>cc", vim.lsp.codelens.run, { desc = "Run Codelens"})
 -- vim.keymap.set("n", "<leader>cC", vim.lsp.codelens.refresh, { desc = "Refresh & Display Codelens"})
