@@ -1,1 +1,4 @@
 # MiniLazyNvim
+
+## Own Nvim configuration
+
