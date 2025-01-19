@@ -2,7 +2,7 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('n', '<leader>e', '<cmd>lua MiniFiles.open()<CR>', { desc = "Open file explorer"})
 vim.keymap.set('n', '<leader><leader>', '<cmd>Pick files<CR>', { desc = "Find file"})
 vim.keymap.set('n', '<leader>bw', '<cmd>:bd<CR>', { desc = "Buffer delete"})
-vim.keymap.set('n', '<leader>qq', '<cmd>:wq<CR>', { desc = "Quit"})
+vim.keymap.set('n', '<leader>qq', '<cmd>:wq<CR>', { desc = "Quvt"})
 
 -- Move to window using the <ctrl> hjkl keys
 vim.keymap.set("n", "<C-h>", "<C-w>h", { desc = "Go to Left Window", remap = true })
@@ -38,3 +38,13 @@ vim.keymap.set("n", "<c-_>",      function() Snacks.terminal(nil, { cwd = vim.uv
 -- Terminal Mappings
 vim.keymap.set("t", "<C-/>", "<cmd>close<cr>", { desc = "Hide Terminal" })
 vim.keymap.set("t", "<c-_>", "<cmd>close<cr>", { desc = "which_key_ignore" })
+
+-- lazygit
+if vim.fn.executable("lazygit") == 1 then
+  vim.keymap.set("n", "<leader>gg", function() Snacks.lazygit( { cwd = vim.uv.cwd() }) end, { desc = "Lazygit (Root Dir)" })
+  vim.keymap.set("n", "<leader>gG", function() Snacks.lazygit() end, { desc = "Lazygit (cwd)" })
+  vim.keymap.set("n", "<leader>gf", function() Snacks.picker.git_log_file() end, { desc = "Git Current File History" })
+  vim.keymap.set("n", "<leader>gl", function() Snacks.picker.git_log({ cwd = vim.uv.cwd() }) end, { desc = "Git Log" })
+  vim.keymap.set("n", "<leader>gL", function() Snacks.picker.git_log() end, { desc = "Git Log (cwd)" })
+end
+
