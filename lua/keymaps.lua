@@ -2,7 +2,9 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('n', '<leader>e', '<cmd>lua MiniFiles.open()<CR>', { desc = "Open file explorer"})
 vim.keymap.set('n', '<leader><leader>', '<cmd>Pick files<CR>', { desc = "Find file"})
 vim.keymap.set('n', '<leader>bw', '<cmd>:bd<CR>', { desc = "Buffer delete"})
-vim.keymap.set('n', '<leader>qq', '<cmd>:wq<CR>', { desc = "Quvt"})
+
+-- quit
+vim.keymap.set("n", "<leader>qq", "<cmd>qa<cr>", { desc = "Quit All" })
 
 -- Move to window using the <ctrl> hjkl keys
 vim.keymap.set("n", "<C-h>", "<C-w>h", { desc = "Go to Left Window", remap = true })
