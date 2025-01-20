@@ -2,6 +2,10 @@ return {
 	{
 		"echasnovski/mini.files",
 		version = false,
-		opts = {},
+		opts = {
+			mappings = {
+				synchronize = "<CR>",
+			},
+		},
 	},
 }

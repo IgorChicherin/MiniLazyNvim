@@ -1,1 +1,6 @@
-../../../../dotfiles/nvim/.config/nvim/lua/plugins/gitignore.lua
+return {
+	"wintermute-cell/gitignore.nvim",
+	config = function()
+		require("gitignore")
+	end,
+}
