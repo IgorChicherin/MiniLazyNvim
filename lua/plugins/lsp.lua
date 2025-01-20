@@ -155,7 +155,7 @@ return {
 
 					local cmp = require("cmp")
 					map(
-						"<Tab>",
+						"<CR>",
 						cmp.mapping.confirm({
 							behavior = cmp.ConfirmBehavior.Replace,
 							select = true,
