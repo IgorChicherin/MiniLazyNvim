@@ -44,7 +44,7 @@ vim.keymap.set("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper win
 vim.keymap.set("n", "<leader>e", "<cmd>lua MiniFiles.open()<CR>", { desc = "Open file explorer" })
 vim.keymap.set("n", "<leader><leader>", "<cmd>Pick files<CR>", { desc = "Find file" })
 
--- quit
+-- Quit
 vim.keymap.set("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
 
 -- Resize window using <ctrl> arrow keys
@@ -98,6 +98,9 @@ vim.keymap.set("t", "<c-_>", "<cmd>close<cr>", { desc = "which_key_ignore" })
 
 -- Lazy
 vim.keymap.set("n", "<leader>l", "<cmd>:Lazy<CR>", { desc = "Lazy" })
+
+-- Mason
+vim.keymap.set("n", "<leader>cm", "<cmd>:Mason<CR>", { desc = "Mason" })
 
 -- LazyGit
 if vim.fn.executable("lazygit") == 1 then
