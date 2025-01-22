@@ -53,16 +53,21 @@ vim.keymap.set("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease Window 
 vim.keymap.set("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Width" })
 vim.keymap.set("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
 
--- Telescope
-vim.keymap.set("n", "<leader>sg", "<cmd>:Telescope live_grep search_dirs=.<CR>", { desc = "[S]earch [G]rep" })
+-- Search
+vim.keymap.set("n", "<leader>sf", Snacks.picker.files, { desc = "[S]earch [F]ile" })
+vim.keymap.set("n", "<leader>sg", Snacks.picker.grep, { desc = "[S]earch [g]rep" })
 vim.keymap.set("n", "<leader>sc", function()
-  require("telescope.builtin").find_files({ cwd = "~/.config/nvim" })
+  Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
 end, { desc = "[S]earch [C]onfig file" })
-
--- Format
--- map({ "n", "v" }, "<leader>cf", function()
---   LazyVim.format({ force = true })
--- end, { desc = "Format" })
+vim.keymap.set("n", "<leader>sh", Snacks.picker.command_history, { desc = "[S]earch command [h]istory" })
+vim.keymap.set("n", "<leader>sC", Snacks.picker.commands, { desc = "[S]earch [C]ommands" })
+vim.keymap.set("n", "<leader>sH", Snacks.picker.help, { desc = "[S]earch [H]elp" })
+vim.keymap.set("n", "<leader>sk", Snacks.picker.keymaps, { desc = "[S]earch [k]eymaps" })
+vim.keymap.set("n", "<leader>sm", Snacks.picker.marks, { desc = "[S]earch [m]arks" })
+vim.keymap.set("n", "<leader>sq", Snacks.picker.qflist, { desc = "[S]earch [q]uickfix" })
+vim.keymap.set("n", "<leader>uC", Snacks.picker.colorschemes, { desc = "[U]I [C]olorschemes" })
+vim.keymap.set("n", "<leader>sGl", Snacks.picker.git_log, { desc = "[S]earch [G]kt [L]og" })
+vim.keymap.set("n", "<leader>sGs", Snacks.picker.git_status, { desc = "[S]earch [G]it [S]tatus" })
 
 -- buffers
 vim.keymap.set("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
@@ -117,8 +122,6 @@ end
 vim.keymap.set("n", "<leader>cv", "<cmd>VenvSelect<cr>", { desc = "Select venv" })
 
 -- toggle options
--- LazyVim.format.snacks_toggle():map("<leader>uf")
--- LazyVim.format.snacks_toggle(true):map("<leader>uF")
 Snacks.toggle.option("spell", { name = "Spelling" }):map("<leader>us")
 Snacks.toggle.option("wrap", { name = "Wrap" }):map("<leader>uw")
 Snacks.toggle.option("relativenumber", { name = "Relative Number" }):map("<leader>uL")
@@ -155,7 +158,7 @@ end, { desc = "Load session for current dir" })
 
 -- select a session to load
 vim.keymap.set("n", "<leader>qS", function()
-  require("persistence").select()
+  Snacks.picker.pick(require("persistence").select())
 end, { desc = "Find session" })
 
 -- load the last session

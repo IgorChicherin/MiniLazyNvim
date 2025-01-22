@@ -74,13 +74,19 @@ return {
           end
 
           map("<leader>cl", "<cmd>LspInfo<CR>", "[L]sp info")
-
-          map("gd", require("telescope.builtin").lsp_definitions, "[G]oto [D]efinition")
+          map("gd", function()
+            Snacks.picker.lsp_definitions()
+          end, "[G]oto [d]efinition")
           map("gD", vim.lsp.buf.declaration, "[G]oto [D]eclaration")
-
-          map("gr", require("telescope.builtin").lsp_references, "[G]oto [R]eferences")
-          map("gI", require("telescope.builtin").lsp_implementations, "[G]oto [I]mplementation")
-          map("gy", require("telescope.builtin").lsp_type_definitions, "[G]oto T[y]pe Definition")
+          map("gr", function()
+            Snacks.picker.lsp_references()
+          end, "[G]oto [R]eferences")
+          map("gI", function()
+            Snacks.picker.lsp_implementations()
+          end, "[G]oto [I]mplementation")
+          map("gy", function()
+            Snacks.picker.lsp_type_definitions()
+          end, "[G]oto T[y]pe Definition")
 
           map("K", function()
             return vim.lsp.buf.hover()
@@ -94,8 +100,9 @@ return {
             return vim.lsp.buf.signature_help()
           end, "Signature Help", "i")
 
-          map("<leader>ds", require("telescope.builtin").lsp_document_symbols, "[D]ocument [S]ymbols")
-          map("<leader>ws", require("telescope.builtin").lsp_dynamic_workspace_symbols, "[W]orkspace [S]ymbols")
+          map("<leader>cs", function()
+            Snacks.picker.lsp_symbols()
+          end, "[S]ymbols")
 
           map("<leader>cr", function()
             Snacks.rename.rename_file()
