@@ -36,6 +36,7 @@ return {
       })
       require("mini.tabline").setup()
       require("mini.icons").setup()
+      require("mini.fuzzy").setup()
     end,
   },
 }
