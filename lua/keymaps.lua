@@ -65,6 +65,7 @@ vim.keymap.set("n", "<leader>sH", Snacks.picker.help, { desc = "[S]earch [H]elp"
 vim.keymap.set("n", "<leader>sk", Snacks.picker.keymaps, { desc = "[S]earch [k]eymaps" })
 vim.keymap.set("n", "<leader>sm", Snacks.picker.marks, { desc = "[S]earch [m]arks" })
 vim.keymap.set("n", "<leader>sq", Snacks.picker.qflist, { desc = "[S]earch [q]uickfix" })
+vim.keymap.set("n", "<leader>sr", Snacks.picker.registers, { desc = "[S]earch [r]egisters" })
 vim.keymap.set("n", "<leader>uC", Snacks.picker.colorschemes, { desc = "[U]I [C]olorschemes" })
 vim.keymap.set("n", "<leader>sGl", Snacks.picker.git_log, { desc = "[S]earch [G]kt [L]og" })
 vim.keymap.set("n", "<leader>sGs", Snacks.picker.git_status, { desc = "[S]earch [G]it [S]tatus" })

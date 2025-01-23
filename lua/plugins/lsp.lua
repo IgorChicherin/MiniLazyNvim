@@ -200,7 +200,6 @@ return {
             mapping = cmp.mapping.preset.insert({
               ["<A-k>"] = cmp.mapping.select_prev_item(),
               ["<A-j>"] = cmp.mapping.select_next_item(),
-              ["<A-l>"] = cmp.mapping.confirm({ select = true, behavior = cmp.ConfirmBehavior.Insert }),
 
               ["<C-e>"] = cmp.mapping({
                 i = cmp.mapping.abort(),
@@ -212,7 +211,11 @@ return {
 
               ["<A-Space>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }),
               ["<CR>"] = cmp.mapping(function(fallback)
-                if cmp.visible() and #cmp.get_entries() == 1 then
+                if cmp.visible() then
+                  local entry = cmp.get_selected_entry()
+                  if not entry then
+                    cmp.mapping.select_next_item()
+                  end
                   cmp.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace })
                 else
                   fallback()
