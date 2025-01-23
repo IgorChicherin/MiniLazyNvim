@@ -36,6 +36,7 @@ return {
       words = { enabled = true },
       terminal = { enabled = true },
       lazygit = { enabled = true },
+      picker = { enbled = true },
     },
   },
 }
