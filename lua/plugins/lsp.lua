@@ -1,18 +1,6 @@
 -- LSP Plugins
 return {
   {
-    -- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
-    -- used for completion, annotations and signatures of Neovim apis
-    "folke/lazydev.nvim",
-    ft = "lua",
-    opts = {
-      library = {
-        -- Load luvit types when the `vim.uv` word is found
-        { path = "${3rd}/luv/library", words = { "vim%.uv" } },
-      },
-    },
-  },
-  {
     -- Main LSP Configuration
     "neovim/nvim-lspconfig",
     dependencies = {
@@ -20,7 +8,7 @@ return {
       -- Mason must be loaded before its dependents so we need to set it up here.
       -- NOTE: `opts = {}` is the same as calling `require('mason').setup({})`
       { "williamboman/mason.nvim", opts = {} },
-      { "stevearc/dressing.nvim", opts = {}, event = "VeryLazy" },
+      { "stevearc/dressing.nvim",  opts = {}, event = "VeryLazy" },
       "williamboman/mason-lspconfig.nvim",
       "WhoIsSethDaniel/mason-tool-installer.nvim",
 
@@ -33,7 +21,7 @@ return {
     config = function()
       -- Brief aside: **What is LSP?**
       --
-      -- LSP is an initialism you've probably heard, but might not understand what it is.
+      -- LSP is an initialis you've probably heard, but might not understand what it is.
       --
       -- LSP stands for Language Server Protocol. It's a protocol that helps editors
       -- and language tooling communicate in a standardized fashion.
@@ -104,9 +92,12 @@ return {
             Snacks.picker.lsp_symbols()
           end, "[S]ymbols")
 
-          map("<leader>cr", function()
+          map("<leader>cR", function()
             Snacks.rename.rename_file()
           end, "Rename file")
+
+          map("<leader>cr", vim.lsp.buf.rename, "Rename")
+
           map("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction", { "n", "x", "v" })
 
           map("]]", function()
@@ -292,7 +283,7 @@ return {
       -- for you, so that they are available from within Neovim.
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-        "stylua", -- Used to format Lua code
+        "ast-grep", -- Used to format Lua code
       })
       require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
