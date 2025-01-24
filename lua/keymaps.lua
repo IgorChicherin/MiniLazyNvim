@@ -1,9 +1,10 @@
 -- [[ Basic Keymaps ]]
---  See `:help vim.keymap.set()`
-
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
-vim.keymap.set("n", "<Esc>", function()
+
+local map = vim.keymap.set
+
+map("n", "<Esc>", function()
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     if vim.api.nvim_win_get_config(win).relative == "win" then
       vim.api.nvim_win_close(win, false)
@@ -11,119 +12,105 @@ vim.keymap.set("n", "<Esc>", function()
   end
 end)
 
-vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
-vim.keymap.set("i", "jk", "<Esc>")
+map("n", "<Esc>", "<cmd>nohlsearch<CR>")
+map("i", "jk", "<Esc>")
 
 -- Diagnostic keymaps
-vim.keymap.set("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
+map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
 
--- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
--- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
--- is not what someone will guess without a bit more experience.
---
--- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
--- or just use <C-\><C-n> to exit terminal mode
-vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+-- Terminal
+map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
--- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
-
--- Keybinds to make split navigation easier.
---  Use CTRL+<hjkl> to switch between windows
---
---  See `:help wincmd` for a list of all window commands
-vim.keymap.set("n", "<C-h>", "<C-w><C-h>", { desc = "Move focus to the left window" })
-vim.keymap.set("n", "<C-l>", "<C-w><C-l>", { desc = "Move focus to the right window" })
-vim.keymap.set("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower window" })
-vim.keymap.set("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
-
--- Files
-vim.keymap.set("n", "<leader>e", "<cmd>lua MiniFiles.open()<CR>", { desc = "Open file explorer" })
-vim.keymap.set("n", "<leader><leader>", "<cmd>Pick files<CR>", { desc = "Find file" })
-
--- Quit
-vim.keymap.set("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
+-- Windows movements
+map("n", "<C-h>", "<C-w><C-h>", { desc = "Move focus to the left window" })
+map("n", "<C-l>", "<C-w><C-l>", { desc = "Move focus to the right window" })
+map("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower window" })
+map("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
 
 -- Resize window using <ctrl> arrow keys
-vim.keymap.set("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
-vim.keymap.set("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
-vim.keymap.set("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Width" })
-vim.keymap.set("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
+map("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
+map("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
+map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Width" })
+map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
+
+-- Files
+map("n", "<leader>e", "<cmd>lua MiniFiles.open()<CR>", { desc = "Open file explorer" })
+map("n", "<leader><leader>", "<cmd>Pick files<CR>", { desc = "Find file" })
+
+-- Quit
+map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
 
 -- Search
-vim.keymap.set("n", "<leader>sf", Snacks.picker.files, { desc = "[S]earch [F]ile" })
-vim.keymap.set("n", "<leader>sg", Snacks.picker.grep, { desc = "[S]earch [g]rep" })
-vim.keymap.set("n", "<leader>sc", function()
+map("n", "<leader>sf", Snacks.picker.files, { desc = "[S]earch [F]ile" })
+map("n", "<leader>sg", Snacks.picker.grep, { desc = "[S]earch [g]rep" })
+map("n", "<leader>sc", function()
   Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
 end, { desc = "[S]earch [C]onfig file" })
-vim.keymap.set("n", "<leader>sh", Snacks.picker.command_history, { desc = "[S]earch command [h]istory" })
-vim.keymap.set("n", "<leader>sC", Snacks.picker.commands, { desc = "[S]earch [C]ommands" })
-vim.keymap.set("n", "<leader>sH", Snacks.picker.help, { desc = "[S]earch [H]elp" })
-vim.keymap.set("n", "<leader>sk", Snacks.picker.keymaps, { desc = "[S]earch [k]eymaps" })
-vim.keymap.set("n", "<leader>sm", Snacks.picker.marks, { desc = "[S]earch [m]arks" })
-vim.keymap.set("n", "<leader>sq", Snacks.picker.qflist, { desc = "[S]earch [q]uickfix" })
-vim.keymap.set("n", "<leader>sr", Snacks.picker.registers, { desc = "[S]earch [r]egisters" })
-vim.keymap.set("n", "<leader>uC", Snacks.picker.colorschemes, { desc = "[U]I [C]olorschemes" })
-vim.keymap.set("n", "<leader>sGl", Snacks.picker.git_log, { desc = "[S]earch [G]kt [L]og" })
-vim.keymap.set("n", "<leader>sGs", Snacks.picker.git_status, { desc = "[S]earch [G]it [S]tatus" })
+map("n", "<leader>sh", Snacks.picker.command_history, { desc = "[S]earch command [h]istory" })
+map("n", "<leader>sC", Snacks.picker.commands, { desc = "[S]earch [C]ommands" })
+map("n", "<leader>sH", Snacks.picker.help, { desc = "[S]earch [H]elp" })
+map("n", "<leader>sk", Snacks.picker.keymaps, { desc = "[S]earch [k]eymaps" })
+map("n", "<leader>sm", Snacks.picker.marks, { desc = "[S]earch [m]arks" })
+map("n", "<leader>sq", Snacks.picker.qflist, { desc = "[S]earch [q]uickfix" })
+map("n", "<leader>sr", Snacks.picker.registers, { desc = "[S]earch [r]egisters" })
+map("n", "<leader>uC", Snacks.picker.colorschemes, { desc = "[U]I [C]olorschemes" })
+map("n", "<leader>sGl", Snacks.picker.git_log, { desc = "[S]earch [G]kt [L]og" })
+map("n", "<leader>sGs", Snacks.picker.git_status, { desc = "[S]earch [G]it [S]tatus" })
 
 -- buffers
-vim.keymap.set("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
-vim.keymap.set("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next Buffer" })
-vim.keymap.set("n", "[b", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
-vim.keymap.set("n", "]b", "<cmd>bnext<cr>", { desc = "Next Buffer" })
-vim.keymap.set("n", "<leader>bb", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
-vim.keymap.set("n", "<leader>`", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
-vim.keymap.set("n", "<leader>bd", function()
+map("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
+map("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next Buffer" })
+map("n", "[b", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
+map("n", "]b", "<cmd>bnext<cr>", { desc = "Next Buffer" })
+map("n", "<leader>bb", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
+map("n", "<leader>`", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
+map("n", "<leader>bd", function()
   Snacks.bufdelete()
 end, { desc = "Delete Buffer" })
-vim.keymap.set("n", "<leader>bo", function()
+map("n", "<leader>bo", function()
   Snacks.bufdelete.other()
 end, { desc = "Delete Other Buffers" })
-vim.keymap.set("n", "<leader>bD", "<cmd>:bd<cr>", { desc = "Delete Buffer and Window" })
+map("n", "<leader>bD", "<cmd>:bd<cr>", { desc = "Delete Buffer and Window" })
 
 -- floating terminal
-vim.keymap.set("n", "<c-/>", function()
+map("n", "<c-/>", function()
   Snacks.terminal(nil, { cwd = vim.uv.cwd() })
 end, { desc = "Terminal (Root Dir)" })
-vim.keymap.set("n", "<c-_>", function()
+map("n", "<c-_>", function()
   Snacks.terminal(nil, { cwd = vim.uv.cwd() })
 end, { desc = "which_key_ignore" })
 
 -- Terminal Mappings
-vim.keymap.set("t", "<C-/>", "<cmd>close<cr>", { desc = "Hide Terminal" })
-vim.keymap.set("t", "<c-_>", "<cmd>close<cr>", { desc = "which_key_ignore" })
+map("t", "<C-/>", "<cmd>close<cr>", { desc = "Hide Terminal" })
+map("t", "<c-_>", "<cmd>close<cr>", { desc = "which_key_ignore" })
 
 -- Lazy
-vim.keymap.set("n", "<leader>l", "<cmd>:Lazy<CR>", { desc = "Lazy" })
+map("n", "<leader>l", "<cmd>:Lazy<CR>", { desc = "Lazy" })
 
 -- Mason
-vim.keymap.set("n", "<leader>cm", "<cmd>:Mason<CR>", { desc = "Mason" })
+map("n", "<leader>cm", "<cmd>:Mason<CR>", { desc = "Mason" })
 
 -- LazyGit
 if vim.fn.executable("lazygit") == 1 then
-  vim.keymap.set("n", "<leader>gg", function()
+  map("n", "<leader>gg", function()
     Snacks.lazygit({ cwd = vim.uv.cwd() })
   end, { desc = "Lazygit (Root Dir)" })
-  vim.keymap.set("n", "<leader>gG", function()
+  map("n", "<leader>gG", function()
     Snacks.lazygit()
   end, { desc = "Lazygit (cwd)" })
-  vim.keymap.set("n", "<leader>gf", function()
+  map("n", "<leader>gf", function()
     Snacks.picker.git_log_file()
   end, { desc = "Git Current File History" })
-  vim.keymap.set("n", "<leader>gl", function()
+  map("n", "<leader>gl", function()
     Snacks.picker.git_log({ cwd = vim.uv.cwd() })
   end, { desc = "Git Log" })
-  vim.keymap.set("n", "<leader>gL", function()
+  map("n", "<leader>gL", function()
     Snacks.picker.git_log()
   end, { desc = "Git Log (cwd)" })
 end
 
 -- VenvSelect
-vim.keymap.set("n", "<leader>cv", "<cmd>VenvSelect<cr>", { desc = "Select venv" })
+map("n", "<leader>cv", "<cmd>VenvSelect<cr>", { desc = "Select venv" })
 
 -- toggle options
 Snacks.toggle.option("spell", { name = "Spelling" }):map("<leader>us")
@@ -147,25 +134,25 @@ Snacks.toggle.profiler():map("<leader>dpp")
 Snacks.toggle.profiler_highlights():map("<leader>dph")
 
 -- windows
-vim.keymap.set("n", "<leader>w", "<c-w>", { desc = "Windows", remap = true })
-vim.keymap.set("n", "<leader>-", "<C-W>s", { desc = "Split Window Below", remap = true })
-vim.keymap.set("n", "<leader>|", "<C-W>v", { desc = "Split Window Right", remap = true })
-vim.keymap.set("n", "<leader>wd", "<C-W>c", { desc = "Delete Window", remap = true })
+map("n", "<leader>w", "<c-w>", { desc = "Windows", remap = true })
+map("n", "<leader>-", "<C-W>s", { desc = "Split Window Below", remap = true })
+map("n", "<leader>|", "<C-W>v", { desc = "Split Window Right", remap = true })
+map("n", "<leader>wd", "<C-W>c", { desc = "Delete Window", remap = true })
 Snacks.toggle.zoom():map("<leader>wm"):map("<leader>uZ")
 Snacks.toggle.zen():map("<leader>uz")
 
 -- Sessions
 -- load the session for the current directory
-vim.keymap.set("n", "<leader>qs", function()
+map("n", "<leader>qs", function()
   require("persistence").load()
 end, { desc = "Load session for current dir" })
 
 -- select a session to load
-vim.keymap.set("n", "<leader>qS", function()
+map("n", "<leader>qS", function()
   Snacks.picker.pick(require("persistence").select())
 end, { desc = "Find session" })
 
 -- load the last session
-vim.keymap.set("n", "<leader>ql", function()
+map("n", "<leader>ql", function()
   require("persistence").load({ last = true })
 end, { desc = "Load last session" })

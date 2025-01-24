@@ -198,10 +198,7 @@ return {
           end
           cmp.setup({
             mapping = cmp.mapping.preset.insert({
-              ["<A-k>"] = cmp.mapping.select_prev_item(),
-              ["<A-j>"] = cmp.mapping.select_next_item(),
-
-              ["<C-e>"] = cmp.mapping({
+              ["<C-u>"] = cmp.mapping({
                 i = cmp.mapping.abort(),
                 c = cmp.mapping.close(),
               }),
@@ -268,9 +265,6 @@ return {
         --
 
         lua_ls = {
-          -- cmd = { ... },
-          -- filetypes = { ... },
-          -- capabilities = {},
           settings = {
             Lua = {
               completion = {
