@@ -89,24 +89,21 @@ return {
         return "%2l:%-2v"
       end
 
-      statusline.section_filename = function()
-        local f = {}
-        for str in string.gmatch(vim.api.nvim_buf_get_name(0), "([^/]+)") do
-          table.insert(f, str)
-        end
-
-        return f[#f]
-      end
-
       local mode, mode_hl = statusline.section_mode({ trunc_width = 120 })
       local git = statusline.section_git({ trunc_width = 40 })
       local diff = statusline.section_diff({ trunc_width = 75 })
       local lsp = statusline.section_lsp({ trunc_width = 75 })
       local diagnostics = statusline.section_diagnostics({ trunc_width = 75 })
-      local filename = statusline.section_filename({ trunc_width = 140 })
       local fileinfo = statusline.section_fileinfo({ trunc_width = 120 })
       local location = statusline.section_location({ trunc_width = 75 })
       local search = statusline.section_searchcount({ trunc_width = 75 })
+
+      local f = {}
+      Filename = statusline.section_filename({ trunc_width = 140 })
+      for str in string.gmatch(Filename, "([^/]+)") do
+        table.insert(f, str)
+      end
+      local filename = f[#f]
 
       local active_content = function()
         return statusline.combine_groups({
