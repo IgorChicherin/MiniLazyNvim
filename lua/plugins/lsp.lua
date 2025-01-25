@@ -8,7 +8,8 @@ return {
       -- Mason must be loaded before its dependents so we need to set it up here.
       -- NOTE: `opts = {}` is the same as calling `require('mason').setup({})`
       { "williamboman/mason.nvim", opts = {} },
-      { "stevearc/dressing.nvim",  opts = {}, event = "VeryLazy" },
+      { "jay-babu/mason-nvim-dap.nvim", opts = { automatic_installation = true } },
+      { "stevearc/dressing.nvim", opts = {}, event = "VeryLazy" },
       "williamboman/mason-lspconfig.nvim",
       "WhoIsSethDaniel/mason-tool-installer.nvim",
 
@@ -283,7 +284,7 @@ return {
       -- for you, so that they are available from within Neovim.
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-        "ast-grep", -- Used to format Lua code
+        "stylua", -- Used to format Lua code
       })
       require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
