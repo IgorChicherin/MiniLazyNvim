@@ -89,26 +89,46 @@ return {
         return "%2l:%-2v"
       end
 
+      statusline.section_filename = function()
+        return "%f"
+      end
+
+      statusline.section_fileinfo = function()
+        local filetype = vim.bo.filetype
+
+        -- Don't show anything if there is no filetype
+        if filetype == "" then
+          return ""
+        end
+
+        -- Add filetype icon
+        filetype = _G.MiniIcons.get("filetype", filetype) .. " " .. filetype
+
+        local size = vim.fn.getfsize(vim.fn.getreg("%"))
+        if size < 1024 then
+          size = string.format("%dB", size)
+        elseif size < 1048576 then
+          size = string.format("%.2fKiB", size / 1024)
+        else
+          size = string.format("%.2fMiB", size / 1048576)
+        end
+
+        return string.format("%s %s", filetype, size)
+      end
+
       local mode, mode_hl = statusline.section_mode({ trunc_width = 120 })
       local git = statusline.section_git({ trunc_width = 40 })
-      local diff = statusline.section_diff({ trunc_width = 75 })
       local lsp = statusline.section_lsp({ trunc_width = 75 })
       local diagnostics = statusline.section_diagnostics({ trunc_width = 75 })
+      local filename = statusline.section_filename({ trunc_width = 75 })
       local fileinfo = statusline.section_fileinfo({ trunc_width = 120 })
       local location = statusline.section_location({ trunc_width = 75 })
       local search = statusline.section_searchcount({ trunc_width = 75 })
 
-      local f = {}
-      Filename = statusline.section_filename({ trunc_width = 140 })
-      for str in string.gmatch(Filename, "([^/]+)") do
-        table.insert(f, str)
-      end
-      local filename = f[#f]
-
       local active_content = function()
         return statusline.combine_groups({
           { hl = mode_hl, strings = { mode } },
-          { hl = "MiniStatuslineDevinfo", strings = { git, diff, diagnostics, lsp } },
+          { hl = "MiniStatuslineDevinfo", strings = { git, diagnostics, lsp } },
           "%<", -- Mark general truncate point
           { hl = "MiniStatuslineFilename", strings = { filename } },
           "%=", -- End left alignment
