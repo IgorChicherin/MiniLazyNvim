@@ -4,11 +4,13 @@ return {
     update_interval = 1000,
     set_dark_mode = function()
       vim.api.nvim_set_option_value("background", "dark", {})
-      vim.cmd("colorscheme tokyonight-moon")
+      require("tokyonight").load({ style = "moon" })
     end,
     set_light_mode = function()
       vim.api.nvim_set_option_value("background", "light", {})
-      vim.cmd("colorscheme tokyonigh-day")
+      require("tokyonight").load({ style = "day" })
     end,
+    -- for gnome dection we need fallback
+    fallback = "light",
   },
 }
