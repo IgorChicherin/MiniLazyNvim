@@ -13,6 +13,10 @@ return {
       require("mini.splitjoin").setup()
       require("mini.surround").setup()
 
+      -- Code completion
+      require("mini.snippets").setup()
+      require("mini.completion").setup()
+
       -- UI enhacements
       require("mini.files").setup({ mappings = { synchronize = "<CR>" } })
       require("mini.pick").setup()
@@ -85,6 +89,7 @@ return {
     version = false,
     init = function()
       local statusline = require("mini.statusline")
+      local icons = require("mini.icons")
 
       statusline.section_location = function()
         return "%2l:%-2v"
@@ -103,7 +108,7 @@ return {
         end
 
         -- Add filetype icon
-        filetype = _G.MiniIcons.get("filetype", filetype) .. " " .. filetype
+        filetype = icons.get("filetype", filetype) .. " " .. filetype
 
         local size = vim.fn.getfsize(vim.fn.getreg("%"))
         if size < 1024 then
@@ -117,29 +122,8 @@ return {
         return string.format("%s %s", filetype, size)
       end
 
-      local mode, mode_hl = statusline.section_mode({ trunc_width = 120 })
-      local git = statusline.section_git({ trunc_width = 40 })
-      local lsp = statusline.section_lsp({ trunc_width = 75 })
-      local diagnostics = statusline.section_diagnostics({ trunc_width = 75 })
-      local filename = statusline.section_filename({ trunc_width = 75 })
-      local fileinfo = statusline.section_fileinfo({ trunc_width = 120 })
-      local location = statusline.section_location({ trunc_width = 75 })
-      local search = statusline.section_searchcount({ trunc_width = 75 })
-
-      local active_content = function()
-        return statusline.combine_groups({
-          { hl = mode_hl, strings = { mode } },
-          { hl = "MiniStatuslineDevinfo", strings = { git, diagnostics, lsp } },
-          "%<", -- Mark general truncate point
-          { hl = "MiniStatuslineFilename", strings = { filename } },
-          "%=", -- End left alignment
-          { hl = "MiniStatuslineFileinfo", strings = { fileinfo } },
-          { hl = mode_hl, strings = { search, location } },
-        })
-      end
       statusline.setup({
         use_icons = vim.g.have_nerd_font,
-        content = { active = active_content },
       })
     end,
   },
