@@ -13,6 +13,10 @@ return {
       require("mini.splitjoin").setup()
       require("mini.surround").setup()
 
+      -- Code completion
+      require("mini.completion").setup({})
+      require("mini.snippets").setup({})
+
       -- UI enhacements
       require("mini.files").setup({ mappings = { synchronize = "<CR>" } })
       require("mini.pick").setup()
