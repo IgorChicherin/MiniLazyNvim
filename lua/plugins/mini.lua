@@ -70,6 +70,7 @@ return {
           -- `z` key
           { mode = "n", keys = "z" },
           { mode = "x", keys = "z" },
+          { mode = "n", keys = "b" },
         },
 
         clues = {
@@ -80,6 +81,12 @@ return {
           miniclue.gen_clues.registers(),
           miniclue.gen_clues.windows(),
           miniclue.gen_clues.z(),
+          { mode = "n", keys = "<Leader>b", desc = "[b]uffers" },
+          { mode = "n", keys = "<Leader>c", desc = "[c]ode" },
+          { mode = "n", keys = "<Leader>d", desc = "[d]edbug" },
+          { mode = "n", keys = "<Leader>g", desc = "[g]it" },
+          { mode = "n", keys = "<Leader>q", desc = "[q]uit/sessio" },
+          { mode = "n", keys = "<Leader>u", desc = "[u]i" },
         },
       })
     end,
