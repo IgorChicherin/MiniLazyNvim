@@ -19,7 +19,7 @@ return {
       { "j-hui/fidget.nvim", opts = {} },
 
       -- Allows extra capabilities provided by nvim-cmp
-      -- "hrsh7th/cmp-nvim-lsp",
+      "hrsh7th/cmp-nvim-lsp",
     },
     config = function()
       --  This function gets run when an LSP attaches to a particular buffer.
@@ -130,68 +130,68 @@ return {
             end, "[T]oggle Inlay [H]ints")
           end
 
-          --     local cmp = require("cmp")
-          --     local fn = vim.fn
-          --
-          --     local function t(str)
-          --       return vim.api.nvim_replace_termcodes(str, true, true, true)
-          --     end
-          --
-          --     local check_back_space = function()
-          --       local col = vim.fn.col(".") - 1
-          --       return col == 0 or vim.fn.getline("."):sub(col, col):match("%s") ~= nil
-          --     end
-          --
-          --     local function tab(fallback)
-          --       local luasnip = require("luasnip")
-          --       if fn.pumvisible() == 1 then
-          --         fn.feedkeys(t("<C-n>"), "n")
-          --       elseif luasnip.expand_or_jumpable() then
-          --         fn.feedkeys(t("<Plug>luasnip-expand-or-jump"), "")
-          --       elseif check_back_space() then
-          --         fn.feedkeys(t("<tab>"), "n")
-          --       else
-          --         fallback()
-          --       end
-          --     end
-          --
-          --     local function shift_tab(fallback)
-          --       local luasnip = require("luasnip")
-          --       if fn.pumvisible() == 1 then
-          --         fn.feedkeys(t("<C-p>"), "n")
-          --       elseif luasnip.jumpable(-1) then
-          --         fn.feedkeys(t("<Plug>luasnip-jump-prev"), "")
-          --       else
-          --         fallback()
-          --       end
-          --     end
-          --
-          -- cmp.setup({
-          --   mapping = cmp.mapping.preset.insert({
-          --     ["<C-u>"] = cmp.mapping({
-          --       i = cmp.mapping.abort(),
-          --       c = cmp.mapping.close(),
-          --     }),
-          --
-          --     ["<C-d>"] = cmp.mapping.scroll_docs(-4),
-          --     ["<C-f>"] = cmp.mapping.scroll_docs(4),
-          --
-          --     ["<A-Space>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }),
-          --     ["<CR>"] = cmp.mapping(function(fallback)
-          --       if cmp.visible() then
-          --         local entry = cmp.get_selected_entry()
-          --         if not entry then
-          --           cmp.mapping.select_next_item()
-          --         end
-          --         cmp.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace })
-          --       else
-          --         fallback()
-          --       end
-          --     end),
-          --     ["<Tab>"] = cmp.mapping(tab, { "i", "s" }),
-          --     ["<S-Tab>"] = cmp.mapping(shift_tab, { "i", "s" }),
-          --   }),
-          -- })
+          local cmp = require("cmp")
+          local fn = vim.fn
+
+          local function t(str)
+            return vim.api.nvim_replace_termcodes(str, true, true, true)
+          end
+
+          local check_back_space = function()
+            local col = vim.fn.col(".") - 1
+            return col == 0 or vim.fn.getline("."):sub(col, col):match("%s") ~= nil
+          end
+
+          local function tab(fallback)
+            local luasnip = require("luasnip")
+            if fn.pumvisible() == 1 then
+              fn.feedkeys(t("<C-n>"), "n")
+            elseif luasnip.expand_or_jumpable() then
+              fn.feedkeys(t("<Plug>luasnip-expand-or-jump"), "")
+            elseif check_back_space() then
+              fn.feedkeys(t("<tab>"), "n")
+            else
+              fallback()
+            end
+          end
+
+          local function shift_tab(fallback)
+            local luasnip = require("luasnip")
+            if fn.pumvisible() == 1 then
+              fn.feedkeys(t("<C-p>"), "n")
+            elseif luasnip.jumpable(-1) then
+              fn.feedkeys(t("<Plug>luasnip-jump-prev"), "")
+            else
+              fallback()
+            end
+          end
+
+          cmp.setup({
+            mapping = cmp.mapping.preset.insert({
+              ["<C-u>"] = cmp.mapping({
+                i = cmp.mapping.abort(),
+                c = cmp.mapping.close(),
+              }),
+
+              ["<C-d>"] = cmp.mapping.scroll_docs(-4),
+              ["<C-f>"] = cmp.mapping.scroll_docs(4),
+
+              ["<A-Space>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }),
+              ["<CR>"] = cmp.mapping(function(fallback)
+                if cmp.visible() then
+                  local entry = cmp.get_selected_entry()
+                  if not entry then
+                    cmp.mapping.select_next_item()
+                  end
+                  cmp.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace })
+                else
+                  fallback()
+                end
+              end),
+              ["<Tab>"] = cmp.mapping(tab, { "i", "s" }),
+              ["<S-Tab>"] = cmp.mapping(shift_tab, { "i", "s" }),
+            }),
+          })
         end,
       })
       --
