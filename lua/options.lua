@@ -74,4 +74,4 @@ if vim.loop.os_uname().sysname == "Windows_NT" then
   vim.o.shell = "powershell"
 end
 
-vim.opt.autochdir = true
+vim.opt.path:append("**")
