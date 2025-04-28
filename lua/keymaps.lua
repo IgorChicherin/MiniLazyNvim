@@ -70,6 +70,7 @@ map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
 
 -- Search
 map("n", "<leader>sf", Snacks.picker.files, { desc = "[S]earch [F]ile" })
+map("n", "<leader>sb", Snacks.picker.buffers, { desc = "[S]earch [B]uffer" })
 map("n", "<leader>sg", Snacks.picker.grep, { desc = "[S]earch [g]rep" })
 map("n", "<leader>sc", function()
   Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
