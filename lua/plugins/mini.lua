@@ -13,9 +13,8 @@ return {
       require("mini.splitjoin").setup()
       require("mini.surround").setup()
 
-      -- Code completion
-      require("mini.completion").setup({})
-      require("mini.snippets").setup({})
+      -- Code snippets
+      require("mini.snippets").setup()
 
       -- UI enhacements
       require("mini.files").setup({ mappings = { synchronize = "<CR>" } })
@@ -28,6 +27,26 @@ return {
       require("mini.fuzzy").setup()
 
       require("mini.misc").setup({ make_global = { "put", "put_text" } })
+    end,
+  },
+  -- Code completion
+  {
+    "echasnovski/mini.completion",
+    version = false,
+    init = function()
+      require("mini.completion").setup()
+      vim.api.nvim_create_autocmd("BufEnter", {
+        desc = "Disable suggetions in floating windows",
+        group = vim.api.nvim_create_augroup("mini.completion.suggetions.disable.floating.windows", { clear = true }),
+        callback = function()
+          local is_floating = vim.api.nvim_win_get_config(0).relative ~= ""
+          if is_floating then
+            MiniCompletion.config.delay = { completion = 10 ^ 7, info = 10 ^ 7, signature = 10 ^ 7 }
+            return
+          end
+          MiniCompletion.config.delay = { completion = 100, info = 100, signature = 50 }
+        end,
+      })
     end,
   },
   {
