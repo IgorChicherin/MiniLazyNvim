@@ -27,6 +27,19 @@ return {
             { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy ~= nil },
             { icon = " ", key = "q", desc = "Quit", action = ":qa" },
           },
+          header = [[
+          
+
+███╗   ███╗ ██╗███╗   ██╗ ██╗
+████╗ ████║███║████╗  ██║███║
+██╔████╔██║╚██║██╔██╗ ██║╚██║
+██║╚██╔╝██║ ██║██║╚██╗██║ ██║
+██║ ╚═╝ ██║ ██║██║ ╚████║ ██║
+╚═╝     ╚═╝ ╚═╝╚═╝  ╚═══╝ ╚═╝
+                             
+
+
+          ]],
         },
       },
       indent = { enabled = true },
