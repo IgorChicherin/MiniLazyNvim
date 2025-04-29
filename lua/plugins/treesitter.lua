@@ -19,6 +19,7 @@ return { -- Highlight, edit, and navigate code
       "typescript",
       "vim",
       "yaml",
+      "cpp",
     },
     auto_install = true,
     highlight = {

@@ -4,7 +4,13 @@ return {
     "nvim-neotest/nvim-nio",
     "rcarriga/nvim-dap-ui",
     "mfussenegger/nvim-dap-python",
+    "leoluz/nvim-dap-go",
     "theHamsta/nvim-dap-virtual-text",
+    {
+      "williamboman/mason.nvim",
+      optional = true,
+      opts = { ensure_installed = { "codelldb" } },
+    },
   },
   keys = {
     {
@@ -67,15 +73,64 @@ return {
     local dap = require("dap")
     local dapui = require("dapui")
     local dap_python = require("dap-python")
+    local dap_go = require("dap-go")
 
     require("dapui").setup({})
     require("nvim-dap-virtual-text").setup({
       commented = true,
     })
     dap_python.setup("python3")
+    dap_go.setup()
 
     dap.listeners.after.event_initialized["dapui_config"] = function()
       dapui.open()
+    end
+  end,
+  opts = function()
+    local dap = require("dap")
+    local install_root_dir = vim.fn.stdpath("data") .. "/mason"
+    local extension_path = install_root_dir .. "/packages/codelldb/extension/"
+    local codelldb_path = extension_path .. "adapter/codelldb"
+
+    if vim.loop.os_uname().sysname == "Windows_NT" then
+      codelldb_path = codelldb_path .. ".exe"
+    end
+
+    if not dap.adapters["codelldb"] then
+      require("dap").adapters["codelldb"] = {
+        type = "server",
+        host = "127.0.0.1",
+        port = "${port}",
+        executable = {
+          command = codelldb_path,
+          args = {
+            "--port",
+            "${port}",
+          },
+        },
+      }
+    end
+    for _, lang in ipairs({ "c", "cpp" }) do
+      dap.configurations[lang] = {
+        {
+          type = "codelldb",
+          request = "launch",
+          name = "Launch file",
+          program = function()
+            return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+          end,
+          cwd = "${workspaceFolder}",
+          port = 13000,
+        },
+        {
+          type = "codelldb",
+          request = "attach",
+          name = "Attach to process",
+          pid = require("dap.utils").pick_process,
+          cwd = "${workspaceFolder}",
+          port = 13000,
+        },
+      }
     end
   end,
 }
