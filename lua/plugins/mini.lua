@@ -6,7 +6,6 @@ return {
       require("mini.basics").setup()
 
       -- Typing enhacements
-      require("mini.bracketed").setup()
       require("mini.ai").setup({ n_lines = 500 })
       require("mini.move").setup()
       require("mini.pairs").setup()
