@@ -4,7 +4,6 @@ return {
     event = "BufEnter",
     build = ":TSUpdate",
     main = "nvim-treesitter.configs", -- Sets main module to use for opts
-    dependencies = { "nvim-treesitter/nvim-treesitter-textobjects" },
     opts = {
       ensure_installed = {
         "bash",
@@ -32,15 +31,6 @@ return {
         "xml",
         "yaml",
       },
-      textobjects = {
-        move = {
-          enable = true,
-          goto_next_start = { ["]f"] = "@function.outer", ["]c"] = "@class.outer", ["]a"] = "@parameter.inner" },
-          goto_next_end = { ["]F"] = "@function.outer", ["]C"] = "@class.outer", ["]A"] = "@parameter.inner" },
-          goto_previous_start = { ["[f"] = "@function.outer", ["[c"] = "@class.outer", ["[a"] = "@parameter.inner" },
-          goto_previous_end = { ["[F"] = "@function.outer", ["[C"] = "@class.outer", ["[A"] = "@parameter.inner" },
-        },
-      },
       auto_install = true,
       highlight = {
         enable = true,
@@ -55,6 +45,7 @@ return {
     "nvim-treesitter/nvim-treesitter-textobjects",
     event = "VeryLazy",
     enabled = true,
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
       -- If treesitter is already loaded, we need to run config again for textobjects
       local treesitter = require("nvim-treesitter")
