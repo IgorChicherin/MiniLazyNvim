@@ -6,11 +6,44 @@ return {
       require("mini.basics").setup()
 
       -- Typing enhacements
-      require("mini.ai").setup({ n_lines = 500 })
       require("mini.move").setup()
       require("mini.pairs").setup()
       require("mini.splitjoin").setup()
-      require("mini.surround").setup()
+      require("mini.surround").setup({
+        -- Module mappings. Use `''` (empty string) to disable one.
+        mappings = {
+          add = "gsa", -- Add surrounding in Normal and Visual modes
+          delete = "gsd", -- Delete surrounding
+          find = "gsf", -- Find surrounding (to the right)
+          find_left = "gsF", -- Find surrounding (to the left)
+          highlight = "gsh", -- Highlight surrounding
+          replace = "gsr", -- Replace surrounding
+          update_n_lines = "gsn", -- Update `n_lines`
+        },
+      })
+      local ai = require("mini.ai")
+      ai.setup({
+        {
+          n_lines = 500,
+          custom_textobjects = {
+            o = ai.gen_spec.treesitter({ -- code block
+              a = { "@block.outer", "@conditional.outer", "@loop.outer" },
+              i = { "@block.inner", "@conditional.inner", "@loop.inner" },
+            }),
+            f = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }), -- function
+            c = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }), -- class
+            t = { "<([%p%w]-)%f[^<%w][^<>]->.-</%1>", "^<.->().*()</[^/]->$" }, -- tags
+            d = { "%f[%d]%d+" }, -- digits
+            e = { -- Word with case
+              { "%u[%l%d]+%f[^%l%d]", "%f[%S][%l%d]+%f[^%l%d]", "%f[%P][%l%d]+%f[^%l%d]", "^[%l%d]+%f[^%l%d]" },
+              "^().*()$",
+            },
+            -- g = LazyVim.mini.ai_buffer, -- buffer
+            u = ai.gen_spec.function_call(), -- u for "Usage"
+            U = ai.gen_spec.function_call({ name_pattern = "[%w_]" }), -- without dot in function name
+          },
+        },
+      })
 
       -- UI enhacements
       require("mini.files").setup({ mappings = { synchronize = "<CR>" } })
@@ -22,18 +55,11 @@ return {
       require("mini.icons").setup()
       require("mini.fuzzy").setup()
 
-      require("mini.misc").setup({ make_global = { "put", "put_text" } })
-    end,
-  },
-  {
-    "echasnovski/mini.clue",
-    version = false,
-    init = function()
       local miniclue = require("mini.clue")
       miniclue.setup({
         window = {
           config = { width = "auto" },
-          delay = 100,
+          delay = 99,
         },
         triggers = {
           -- Leader triggers
@@ -79,16 +105,11 @@ return {
           { mode = "n", keys = "<Leader>c", desc = "[c]ode" },
           { mode = "n", keys = "<Leader>d", desc = "[d]edbug" },
           { mode = "n", keys = "<Leader>g", desc = "[g]it" },
-          { mode = "n", keys = "<Leader>q", desc = "[q]uit/sessio" },
+          { mode = "n", keys = "<Leader>q", desc = "[q]uit/session" },
           { mode = "n", keys = "<Leader>u", desc = "[u]i" },
         },
       })
-    end,
-  },
-  {
-    "echasnovski/mini.statusline",
-    version = false,
-    init = function()
+
       local statusline = require("mini.statusline")
       local icons = require("mini.icons")
 
@@ -126,6 +147,8 @@ return {
       statusline.setup({
         use_icons = vim.g.have_nerd_font,
       })
+
+      require("mini.misc").setup({ make_global = { "put", "put_text" } })
     end,
   },
 }
