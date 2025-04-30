@@ -22,15 +22,12 @@ return {
     -- See :h blink-cmp-config-keymap for defining your own keymap
     keymap = { preset = "enter" },
 
-    appearance = {
-      nerd_font_variant = "mono",
-    },
+    appearance = { nerd_font_variant = "mono" },
 
-    completion = { documentation = { auto_show = true } },
+    completion = { documentation = { auto_show = false } },
+    signature = { enabled = true },
 
-    sources = {
-      default = { "lsp", "path", "snippets", "buffer" },
-    },
+    sources = { default = { "lsp", "path", "snippets", "buffer" } },
 
     fuzzy = { implementation = "prefer_rust_with_warning" },
   },
