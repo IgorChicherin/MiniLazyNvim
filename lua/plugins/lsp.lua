@@ -55,6 +55,10 @@ return {
             return vim.lsp.buf.hover()
           end, "Hover")
 
+          map("gx", function()
+            return vim.diagnostic.open_float()
+          end, "Diagnostics")
+
           map("gK", function()
             return vim.lsp.buf.signature_help()
           end, "Signature Help")
