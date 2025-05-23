@@ -52,7 +52,7 @@ return {
       "<F10>",
       function()
         require("dap").terminate()
-        require("dapui").close()
+        -- require("dapui").close()
       end,
       desc = "Terminate",
     },
@@ -82,9 +82,9 @@ return {
     dap_python.setup("python3")
     dap_go.setup()
 
-    dap.listeners.after.event_initialized["dapui_config"] = function()
-      dapui.open()
-    end
+    -- dap.listeners.after.event_initialized["dapui_config"] = function()
+    --   dapui.open()
+    -- end
   end,
   opts = function()
     local dap = require("dap")
