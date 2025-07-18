@@ -1,5 +1,5 @@
 return {
   "Civitasv/cmake-tools.nvim",
-  requires = { "nvim-lua/plenary.nvim" },
+  dependencies = { "nvim-lua/plenary.nvim" },
   opts = {},
 }
