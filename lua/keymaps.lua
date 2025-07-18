@@ -112,9 +112,6 @@ if vim.fn.executable("lazygit") == 1 then
   end, { desc = "Git Log (cwd)" })
 end
 
--- VenvSelect
-map("n", "<leader>cv", "<cmd>VenvSelect<cr>", { desc = "Select venv" })
-
 -- toggle options
 Snacks.toggle.option("spell", { name = "Spelling" }):map("<leader>us")
 Snacks.toggle.option("wrap", { name = "Wrap" }):map("<leader>uw")
