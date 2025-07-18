@@ -5,7 +5,7 @@ require("options")
 require("autocommands")
 
 -- [[ LSP ]]
-require("config.lsp")
+require("lsp")
 
 -- [[ Lazy ]]
 require("config.lazy")
