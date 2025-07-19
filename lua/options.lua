@@ -75,3 +75,7 @@ if vim.loop.os_uname().sysname == "Windows_NT" then
 end
 
 vim.diagnostic.config({ jump = { float = true } })
+
+-- Restrict omnifunc variants by disabling extra sources (buffer/path)
+vim.opt.complete = ".,w,b,u,t" -- .: current buffer, w: buffers in window, b: open buffers, u: unloaded buffers, t: tags
+vim.opt.pumheight = 10

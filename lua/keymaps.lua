@@ -12,6 +12,29 @@ map("n", "<Esc>", function()
   end
 end)
 
+-- "PyCharm-style" Enter confirmation:
+-- If the popup menu is visible and nothing is selected, choose the first item.
+-- Otherwise confirm the selected item. If no popup -> insert real newline.
+map("i", "<CR>", function()
+  if vim.fn.pumvisible() == 1 then
+    local ci = vim.fn.complete_info({ "selected" })
+    if ci.selected == -1 then
+      return "<C-n><C-y>" -- select first, then confirm
+    else
+      return "<C-y>"      -- confirm current selection
+    end
+  end
+  return "<CR>" -- plain newline
+end, { expr = true, desc = "Confirm completion or newline" })
+
+-- Cancel popup menu with <Esc> or <C-c>
+map("i", "<Esc>", function()
+  if vim.fn.pumvisible() == 1 then
+    return "<C-e><Esc>"
+  end
+  return "<Esc>"
+end, { expr = true, desc = "Cancel popup menu or exit insert mode" })
+
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
 -- Diagnostic keymaps
@@ -116,11 +139,11 @@ Snacks.toggle.option("relativenumber", { name = "Relative Number" }):map("<leade
 Snacks.toggle.diagnostics():map("<leader>ud")
 Snacks.toggle.line_number():map("<leader>ul")
 Snacks.toggle
-  .option("conceallevel", { off = 0, on = vim.o.conceallevel > 0 and vim.o.conceallevel or 2, name = "Conceal Level" })
-  :map("<leader>uc")
+    .option("conceallevel", { off = 0, on = vim.o.conceallevel > 0 and vim.o.conceallevel or 2, name = "Conceal Level" })
+    :map("<leader>uc")
 Snacks.toggle
-  .option("showtabline", { off = 0, on = vim.o.showtabline > 0 and vim.o.showtabline or 2, name = "Tabline" })
-  :map("<leader>uA")
+    .option("showtabline", { off = 0, on = vim.o.showtabline > 0 and vim.o.showtabline or 2, name = "Tabline" })
+    :map("<leader>uA")
 Snacks.toggle.treesitter():map("<leader>uT")
 Snacks.toggle.option("background", { off = "light", on = "dark", name = "Dark Background" }):map("<leader>ub")
 Snacks.toggle.dim():map("<leader>uD")
