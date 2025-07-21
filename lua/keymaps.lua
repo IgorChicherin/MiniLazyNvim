@@ -84,9 +84,6 @@ end, { desc = "which_key_ignore" })
 map("t", "<C-/>", "<cmd>close<cr>", { desc = "Hide Terminal" })
 map("t", "<c-_>", "<cmd>close<cr>", { desc = "which_key_ignore" })
 
--- AI
-map("n", "<leader>a", "<cmd>:Gen<cr>", { desc = "AI prompt" })
-
 -- Lazy
 map("n", "<leader>l", "<cmd>:Lazy<CR>", { desc = "Lazy" })
 
