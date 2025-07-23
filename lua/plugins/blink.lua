@@ -30,6 +30,13 @@ return {
     sources = { default = { "lsp", "path", "snippets", "buffer" } },
 
     fuzzy = { implementation = "prefer_rust_with_warning" },
+    providers = {
+      lazydev = {
+        name = "LazyDev",
+        module = "lazydev.integrations.blink",
+        score_offset = 100,
+      },
+    },
   },
   opts_extend = { "sources.default" },
 }
