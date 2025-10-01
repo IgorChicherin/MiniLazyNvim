@@ -129,6 +129,31 @@ Snacks.toggle.indent():map("<leader>ug")
 Snacks.toggle.scroll():map("<leader>uS")
 Snacks.toggle.profiler():map("<leader>dpp")
 Snacks.toggle.profiler_highlights():map("<leader>dph")
+Snacks.toggle
+  .new({
+    id = "format_on_save",
+    name = "󰊄 Format on Save (global)",
+    get = function()
+      return not vim.g.disable_autoformat
+    end,
+    set = function(state)
+      vim.g.disable_autoformat = not state
+    end,
+  })
+  :map("<leader>uf")
+
+Snacks.toggle
+  .new({
+    id = "format_on_save_buffer",
+    name = "󰊄 Format on Save (buffer)",
+    get = function()
+      return not vim.b.disable_autoformat
+    end,
+    set = function(state)
+      vim.b.disable_autoformat = not state
+    end,
+  })
+  :map("<leader>uF")
 
 -- windows
 map("n", "<leader>w", "<c-w>", { desc = "Windows", remap = true })
