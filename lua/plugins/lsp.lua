@@ -171,9 +171,34 @@ return {
       --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
+
+      local function get_python()
+        local venv = os.getenv("VIRTUAL_ENV")
+        if venv then
+          if vim.fn.has("win32") == 1 then
+            return venv .. "\\Scripts\\python.exe"
+          end
+          return venv .. "/bin/python"
+        end
+        return vim.fn.has("win32") == 1 and "python" or "python3"
+      end
+
       local servers = {
         gopls = {},
-        basedpyright = {},
+        basedpyright = {
+          settings = {
+            python = {
+              pythonPath = get_python(),
+            },
+          },
+          basedpyright = {
+            analysis = {
+              autoSearchPaths = true,
+              diagnosticMode = "workspace", -- 🔥 REQUIRED
+              useLibraryCodeForTypes = true,
+            },
+          },
+        },
         lua_ls = {
           settings = {
             Lua = {
