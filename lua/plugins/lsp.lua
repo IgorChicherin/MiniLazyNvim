@@ -185,6 +185,7 @@ return {
 
       local servers = {
         gopls = {},
+        ruff = {},
         basedpyright = {
           settings = {
             python = {
