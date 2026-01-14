@@ -77,4 +77,4 @@ if vim.loop.os_uname().sysname == "Windows_NT" then
   vim.o.shell = "powershell"
 end
 
-vim.diagnostic.config({ jump = { float = true } })
+vim.diagnostic.config({ virtual_text = false, virtual_lines = { current_line = true }, jump = { float = true } })
