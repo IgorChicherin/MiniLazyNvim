@@ -49,19 +49,11 @@ return {
           end
 
           map("<leader>cl", "<cmd>LspInfo<CR>", "[L]sp info")
-          map("gd", function()
-            Snacks.picker.lsp_definitions()
-          end, "[G]oto [d]efinition")
+          map("gd", vim.lsp.buf.definition, "[G]oto [d]efinition")
           map("gD", vim.lsp.buf.declaration, "[G]oto [D]eclaration")
-          map("gr", function()
-            Snacks.picker.lsp_references()
-          end, "[G]oto [R]eferences")
-          map("gI", function()
-            Snacks.picker.lsp_implementations()
-          end, "[G]oto [I]mplementation")
-          map("gy", function()
-            Snacks.picker.lsp_type_definitions()
-          end, "[G]oto T[y]pe Definition")
+          map("gr", vim.lsp.buf.references, "[G]oto [R]eferences")
+          map("gI", vim.lsp.buf.implementation, "[G]oto [I]mplementation")
+          map("gy", vim.lsp.buf.type_definition, "[G]oto T[y]pe Definition")
 
           map("K", function()
             return vim.lsp.buf.hover()

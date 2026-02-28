@@ -18,13 +18,41 @@ map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
 
 -- Terminal
-map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+local function get_terminal_buffer()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "terminal" then
+      return buf
+    end
+  end
+  return nil
+end
 
--- Windows movements
-map("n", "<C-h>", "<C-w><C-h>", { desc = "Move focus to the left window" })
-map("n", "<C-l>", "<C-w><C-l>", { desc = "Move focus to the right window" })
-map("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower window" })
-map("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
+local function toggle_terminal()
+  local term_buf = get_terminal_buffer()
+
+  if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
+    local found_win = nil
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.api.nvim_win_get_buf(win) == term_buf then
+        found_win = win
+        break
+      end
+    end
+
+    if found_win then
+      vim.api.nvim_wdesc = "Toggle terminal"
+      in_close(found_win, false)
+    else
+      vim.cmd("sb " .. term_buf)
+      vim.cmd("startinsert")
+    end
+  else
+    vim.cmd("sp | term")
+  end
+end
+
+map("n", "<leader>t", toggle_terminal, { desc = "Toggle terminal" })
+map("t", "<Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
 -- Resize window using <ctrl> arrow keys
 map("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
@@ -33,56 +61,43 @@ map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Wi
 map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
 
 -- Files
-map("n", "<leader>e", "<cmd>lua MiniFiles.open()<CR>", { desc = "Open file explorer" })
+map("n", "<leader>e", function()
+  local netrw_open = false
+
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    local ft = vim.bo[buf].filetype
+    if ft == "netrw" then
+      netrw_open = true
+      vim.api.nvim_buf_delete(0, {})
+    end
+  end
+
+  if not netrw_open then
+    vim.cmd("Ex")
+  end
+end, { desc = "Open file explorer" })
 map("n", "<leader><leader>", "<cmd>Pick files<CR>", { desc = "Find file" })
+
+-- Buffers
+map("n", "<leader>bd", function()
+  vim.api.nvim_buf_delete(0, {})
+end, { desc = "Buffer delete" })
 
 -- Quit
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
 
 -- Search
-map("n", "<leader>sf", Snacks.picker.files, { desc = "[S]earch [F]ile" })
-map("n", "<leader>sb", Snacks.picker.buffers, { desc = "[S]earch [B]uffer" })
-map("n", "<leader>sg", Snacks.picker.grep, { desc = "[S]earch [g]rep" })
-map("n", "<leader>sc", function()
-  Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
-end, { desc = "[S]earch [C]onfig file" })
-map("n", "<leader>sh", Snacks.picker.command_history, { desc = "[S]earch command [h]istory" })
-map("n", "<leader>sC", Snacks.picker.commands, { desc = "[S]earch [C]ommands" })
-map("n", "<leader>sH", Snacks.picker.help, { desc = "[S]earch [H]elp" })
-map("n", "<leader>sk", Snacks.picker.keymaps, { desc = "[S]earch [k]eymaps" })
-map("n", "<leader>sm", Snacks.picker.marks, { desc = "[S]earch [m]arks" })
-map("n", "<leader>sq", Snacks.picker.qflist, { desc = "[S]earch [q]uickfix" })
-map("n", "<leader>sr", Snacks.picker.registers, { desc = "[S]earch [r]egisters" })
-map("n", "<leader>uC", Snacks.picker.colorschemes, { desc = "[U]I [C]olorschemes" })
-map("n", "<leader>sGl", Snacks.picker.git_log, { desc = "[S]earch [G]kt [L]og" })
-map("n", "<leader>sGs", Snacks.picker.git_status, { desc = "[S]earch [G]it [S]tatus" })
+local function grep_input()
+  local input = vim.fn.input("RG search: ")
+  if input ~= "" then
+    -- call ripgrep directly
+    vim.cmd("vimgrep /" .. input .. "/gj **/*")
+    vim.cmd("copen")
+  end
+end
 
--- Buffers
-map("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
-map("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next Buffer" })
-map("n", "[b", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
-map("n", "]b", "<cmd>bnext<cr>", { desc = "Next Buffer" })
-map("n", "<leader>bb", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
-map("n", "<leader>`", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
-map("n", "<leader>bd", function()
-  Snacks.bufdelete()
-end, { desc = "Delete Buffer" })
-map("n", "<leader>bo", function()
-  Snacks.bufdelete.other()
-end, { desc = "Delete Other Buffers" })
-map("n", "<leader>bD", "<cmd>:bd<cr>", { desc = "Delete Buffer and Window" })
-
--- floating terminal
-map("n", "<c-/>", function()
-  Snacks.terminal(nil, { cwd = vim.uv.cwd() })
-end, { desc = "Terminal (Root Dir)" })
-map("n", "<c-_>", function()
-  Snacks.terminal(nil, { cwd = vim.uv.cwd() })
-end, { desc = "which_key_ignore" })
-
--- Terminal Mappings
-map("t", "<C-/>", "<cmd>close<cr>", { desc = "Hide Terminal" })
-map("t", "<c-_>", "<cmd>close<cr>", { desc = "which_key_ignore" })
+map("n", "<leader>sg", grep_input, { noremap = true, desc = "Grep word" })
 
 -- Lazy
 map("n", "<leader>l", "<cmd>:Lazy<CR>", { desc = "Lazy" })
@@ -90,94 +105,69 @@ map("n", "<leader>l", "<cmd>:Lazy<CR>", { desc = "Lazy" })
 -- Mason
 map("n", "<leader>cm", "<cmd>:Mason<CR>", { desc = "Mason" })
 
--- LazyGit
-if vim.fn.executable("lazygit") == 1 then
-  map("n", "<leader>gg", function()
-    Snacks.lazygit({ cwd = vim.uv.cwd() })
-  end, { desc = "Lazygit (Root Dir)" })
-  map("n", "<leader>gG", function()
-    Snacks.lazygit()
-  end, { desc = "Lazygit (cwd)" })
-  map("n", "<leader>gf", function()
-    Snacks.picker.git_log_file()
-  end, { desc = "Git Current File History" })
-  map("n", "<leader>gl", function()
-    Snacks.picker.git_log({ cwd = vim.uv.cwd() })
-  end, { desc = "Git Log" })
-  map("n", "<leader>gL", function()
-    Snacks.picker.git_log()
-  end, { desc = "Git Log (cwd)" })
-end
-
--- toggle options
-Snacks.toggle.option("spell", { name = "Spelling" }):map("<leader>us")
-Snacks.toggle.option("wrap", { name = "Wrap" }):map("<leader>uw")
-Snacks.toggle.option("relativenumber", { name = "Relative Number" }):map("<leader>uL")
-Snacks.toggle.diagnostics():map("<leader>ud")
-Snacks.toggle.line_number():map("<leader>ul")
-Snacks.toggle
-  .option("conceallevel", { off = 0, on = vim.o.conceallevel > 0 and vim.o.conceallevel or 2, name = "Conceal Level" })
-  :map("<leader>uc")
-Snacks.toggle
-  .option("showtabline", { off = 0, on = vim.o.showtabline > 0 and vim.o.showtabline or 2, name = "Tabline" })
-  :map("<leader>uA")
-Snacks.toggle.treesitter():map("<leader>uT")
-Snacks.toggle.option("background", { off = "light", on = "dark", name = "Dark Background" }):map("<leader>ub")
-Snacks.toggle.dim():map("<leader>uD")
-Snacks.toggle.animate():map("<leader>ua")
-Snacks.toggle.indent():map("<leader>ug")
-Snacks.toggle.scroll():map("<leader>uS")
-Snacks.toggle.profiler():map("<leader>dpp")
-Snacks.toggle.profiler_highlights():map("<leader>dph")
-Snacks.toggle
-  .new({
-    id = "format_on_save",
-    name = "󰊄 Format on Save (global)",
-    get = function()
-      return not vim.g.disable_autoformat
-    end,
-    set = function(state)
-      vim.g.disable_autoformat = not state
-    end,
-  })
-  :map("<leader>uf")
-
-Snacks.toggle
-  .new({
-    id = "format_on_save_buffer",
-    name = "󰊄 Format on Save (buffer)",
-    get = function()
-      return not vim.b.disable_autoformat
-    end,
-    set = function(state)
-      vim.b.disable_autoformat = not state
-    end,
-  })
-  :map("<leader>uF")
-
--- windows
-map("n", "<leader>w", "<c-w>", { desc = "Windows", remap = true })
-map("n", "<leader>-", "<C-W>s", { desc = "Split Window Below", remap = true })
-map("n", "<leader>|", "<C-W>v", { desc = "Split Window Right", remap = true })
-map("n", "<leader>wd", "<C-W>c", { desc = "Delete Window", remap = true })
-Snacks.toggle.zoom():map("<leader>wm"):map("<leader>uZ")
-Snacks.toggle.zen():map("<leader>uz")
-
 -- Sessions
 -- load the session for the current directory
 map("n", "<leader>qs", function()
   require("persistence").load()
 end, { desc = "Load session for current dir" })
 
--- select a session to load
+-- Select a session to load
 map("n", "<leader>qS", function()
   require("persistence").select()
 end, { desc = "Find session" })
 
--- load the last session
+-- Load the last session
 map("n", "<leader>ql", function()
   require("persistence").load({ last = true })
 end, { desc = "Load last session" })
+
+local lazygit_buf = nil
+local lazygit_win = nil
+
+local function toggle_lazygit()
+  -- If window exists → close it
+  if lazygit_win and vim.api.nvim_win_is_valid(lazygit_win) then
+    vim.api.nvim_win_close(lazygit_win, true)
+    lazygit_win = nil
+    return
+  end
+
+  -- Create buffer if needed
+  if not lazygit_buf or not vim.api.nvim_buf_is_valid(lazygit_buf) then
+    lazygit_buf = vim.api.nvim_create_buf(false, true)
+  end
+
+  local width = math.floor(vim.o.columns * 0.9)
+  local height = math.floor(vim.o.lines * 0.9)
+
+  local row = math.floor((vim.o.lines - height) / 2)
+  local col = math.floor((vim.o.columns - width) / 2)
+
+  lazygit_win = vim.api.nvim_open_win(lazygit_buf, true, {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    style = "minimal",
+    border = "rounded",
+  })
+
+  -- Only start lazygit once
+  if vim.bo[lazygit_buf].buftype ~= "terminal" then
+    vim.fn.termopen({ "lazygit" })
+  end
+
+  vim.cmd("startinsert")
+end
+
+vim.keymap.set("n", "<leader>gg", toggle_lazygit, { desc = "Toggle LazyGit" })
+
+vim.keymap.set("n", "<leader>gg", function()
+  vim.cmd("enew")
+  vim.fn.termopen({ "lazygit" })
+  vim.cmd("startinsert")
+end, { desc = "Open LazyGit (tab)" })
 
 map("n", "[e", function()
   vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.ERROR, wrap = true })
