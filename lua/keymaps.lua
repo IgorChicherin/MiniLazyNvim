@@ -14,21 +14,6 @@ end)
 
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
--- Omnifunc
-
--- Omnifunc
-map("i", "<CR>", function()
-	if vim.fn.pumvisible() == 1 then
-		local ci = vim.fn.complete_info({ "selected" })
-		if ci.selected == -1 then
-			return "<C-n><C-y>" -- select first, then confirm
-		else
-			return "<C-y>" -- confirm current selection
-		end
-	end
-	return "<CR>" -- plain newline
-end, { expr = true, desc = "Confirm completion or newline" })
-
 -- Diagnostic keymaps
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
 
@@ -96,6 +81,11 @@ end, { desc = "Load session for current dir" })
 map("n", "<leader>qS", function()
   require("persistence").select()
 end, { desc = "Find session" })
+
+-- Load the last session
+map("n", "<leader>ql", function()
+  require("persistence").load({ last = true })
+end, { desc = "Load last session" })
 
 local lazygit_buf = nil
 local lazygit_win = nil
