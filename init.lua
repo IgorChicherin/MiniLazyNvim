@@ -31,7 +31,7 @@ vim.opt.showmode = false
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
 vim.schedule(function()
-  vim.opt.clipboard = "unnamedplus"
+	vim.opt.clipboard = "unnamedplus"
 end)
 
 -- Enable break indent
@@ -51,7 +51,8 @@ vim.opt.signcolumn = "yes"
 vim.opt.updatetime = 250
 
 -- Decrease mapped sequence wait time
-vim.opt.timeoutlen = 300
+vim.opt.timeout = true
+vim.opt.timeoutlen = 800
 
 -- Configure how new splits should be opened
 vim.opt.splitright = true
@@ -73,7 +74,7 @@ vim.opt.cursorline = true
 vim.opt.scrolloff = 10
 
 if vim.loop.os_uname().sysname == "Windows_NT" then
-  vim.o.shell = "powershell"
+	vim.o.shell = "powershell"
 end
 
 vim.diagnostic.config({ jump = { float = true } })
@@ -82,96 +83,20 @@ vim.diagnostic.config({ jump = { float = true } })
 vim.opt.complete = ".,w,b,u,t" -- .: current buffer, w: buffers in window, b: open buffers, u: unloaded buffers, t: tags
 vim.opt.pumheight = 10
 
--- [[ Setting options ]]
-
-
--- [[ Autocommands ]]
--- [[ Basic Autocommands ]]
---  See `:help lua-guide-autocommands`
-
--- Highlight when yanking (copying) text
---  Try it with `yap` in normal mode
---  See `:help vim.highlight.on_yank()`
-vim.api.nvim_create_autocmd("TextYankPost", {
-  desc = "Highlight when yanking (copying) text",
-  group = vim.api.nvim_create_augroup("kickstart-highlight-yank", { clear = true }),
-  callback = function()
-    vim.highlight.on_yank()
-  end,
-})
--- [[ Autocommands ]]
-
--- [[ LSP ]]
---------------------------------------------------------------------------------
--- See https://gpanders.com/blog/whats-new-in-neovim-0-11/ for a nice overview
--- of how the lsp setup works in neovim 0.11+.
-
--- This actually just enables the lsp servers.
--- The configuration is found in the lsp folder inside the nvim config folder,
--- so in ~.config/lsp/lua_ls.lua for lua_ls, for example.
-
--- Treesitter
-vim.pack.add({ { src = "https://github.com/nvim-treesitter/nvim-treesitter" }, }, { confirm = false })
-
-require('nvim-treesitter.config').setup({
-  ensure_installed = { "lua", "vim", "vimdoc", "python", "go", "c", "cpp" },
-  auto_install = true,      -- This enables auto-compilation on file open
-  indent = { enable = true },
-})
-
-vim.api.nvim_create_autocmd("FileType", {
-        callback = function(args)
-          local lang = vim.treesitter.language.get_lang(args.match)
-          if not lang then
-            return
-          end
-
-          -- Try to load parser (won't error if missing)
-          pcall(vim.treesitter.language.add, lang)
-
-          -- Start Treesitter highlighting
-          pcall(vim.treesitter.start, args.buf, lang)
-        end,
-})
-
--- Mason
-vim.pack.add({
-	{ src = "https://github.com/mason-org/mason.nvim.git" },
-	{ src = "https://github.com/mason-org/mason-lspconfig.nvim.git" },
-	{ src = "https://github.com/neovim/nvim-lspconfig.git" },
-}, { confirm = false })
-require("mason").setup()
-require("mason-lspconfig").setup({ ensure_installed = { "lua_ls", "basedpyright", "gopls", "clangd" }, })
-
-vim.api.nvim_create_autocmd("LspAttach", {
-	callback = function(ev)
-		local client = vim.lsp.get_client_by_id(ev.data.client_id)
-		if client:supports_method("textDocument/completion") then
-			vim.opt.completeopt = { "menu", "menuone", "noinsert", "fuzzy", "popup" }
-			vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
-		end
-
-		-- Change diagnostic symbols in the sign column (gutter)
-		if vim.g.have_nerd_font then
-			local signs = { ERROR = " ", WARN = " ", INFO = " ", HINT = " " }
-			local diagnostic_signs = {}
-			for type, icon in pairs(signs) do
-				diagnostic_signs[vim.diagnostic.severity[type]] = icon
-			end
-			vim.diagnostic.config({ signs = { text = diagnostic_signs } })
-		end
-	end,
-})
-
+-- [[ Utils ]]
 local function get_python()
-        local venv = os.getenv("VIRTUAL_ENV")
-        if venv then
-          if vim.fn.has("win32") == 1 then
-            return venv .. "\\Scripts\\python.exe"
-          end
-          return venv .. "/bin/python"
-        end
+	local venv = os.getenv("VIRTUAL_ENV")
+	if venv then
+		if vim.fn.has("win32") == 1 then
+			return venv .. "\\Scripts\\python.exe"
+		end
+		return venv .. "/bin/python"
+	end
 	return vim.fn.has("win32") == 1 and "python" or "python3"
+end
+
+local on_lsp_attach = function(args)
+	vim.bo[args.buf].omnifunc = 'v:lua.MiniCompletion.completefunc_lsp'
 end
 
 local on_attach = function(client, bufnr)
@@ -196,6 +121,153 @@ local on_attach = function(client, bufnr)
 	map("n", "<leader>lf", vim.lsp.buf.format, opts)
 end
 
+local function get_terminal_buffer()
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		if vim.api.nvim_get_option_value('buftype', { buf = buf }) == 'terminal' then
+			return buf
+		end
+	end
+	return nil
+end
+
+local function toggle_terminal()
+	local term_buf = get_terminal_buffer()
+
+	if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
+		local found_win = nil
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			if vim.api.nvim_win_get_buf(win) == term_buf then
+				found_win = win
+				break
+			end
+		end
+
+		if found_win then
+			vim.api.nvim_win_close(found_win, false)
+		else
+			vim.cmd('sb ' .. term_buf)
+			vim.cmd('startinsert')
+		end
+	else
+		vim.cmd('sp | term')
+	end
+end
+
+local function floating_lazygit()
+	-- Calculate floating window size and position
+	local width = math.floor(vim.o.columns * 0.8)
+	local height = math.floor(vim.o.lines * 0.8)
+	local row = math.floor((vim.o.lines - height) / 2)
+	local col = math.floor((vim.o.columns - width) / 2)
+
+	-- Create floating window config
+	local opts = {
+		relative = "editor",
+		width = width,
+		height = height,
+		row = row,
+		col = col,
+		border = "rounded",
+		style = "minimal",
+	}
+
+	-- Create the buffer first
+	local buf = vim.api.nvim_create_buf(false, true)
+
+	-- Create the floating window with that buffer
+	local win = vim.api.nvim_open_win(buf, true, opts)
+
+	-- IMPORTANT: Set terminal command BEFORE entering insert mode
+	vim.api.nvim_buf_call(buf, function()
+		vim.cmd('terminal lazygit')
+	end)
+
+	-- Auto-enter terminal mode
+	vim.cmd('startinsert')
+end
+
+local function rg_search_project()
+  local query = vim.fn.input("Search word: ")
+  if query == "" then return end
+
+  -- Windows-friendly ripgrep
+  local cmd = 'rg --vimgrep --smart-case ' .. vim.fn.shellescape(query) .. ' .'
+
+  -- Читаем вывод
+  local handle = io.popen(cmd)
+  local result = handle:read("*a")
+  handle:close()
+
+  if result == "" then
+    vim.notify("No matches found!", vim.log.levels.INFO)
+    return
+  end
+
+  local lines = vim.split(result, "\n")
+  local qf_list = {}
+
+  for _, line in ipairs(lines) do
+    -- Разбор строки: file:line:col:text, пути могут содержать :
+    local file, lnum, col, text = line:match("^([^\n]-):(%d+):(%d+):(.*)$")
+    if file and lnum and col and text then
+      table.insert(qf_list, {
+        filename = file,
+        lnum = tonumber(lnum),
+        col = tonumber(col),
+        text = text,
+      })
+    end
+  end
+
+  if #qf_list == 0 then
+    vim.notify("No matches found!", vim.log.levels.INFO)
+    return
+  end
+
+  -- Устанавливаем quickfix
+  vim.fn.setqflist({}, " ", { title = "rg Search", items = qf_list })
+  vim.cmd("copen")
+end
+
+
+-- [[ Utils ]]
+
+
+-- [[ Setting options ]]
+
+-- [[ Autocommands ]]
+-- [[ Basic Autocommands ]]
+--  See `:help lua-guide-autocommands`
+
+-- Highlight when yanking (copying) text
+--  Try it with `yap` in normal mode
+--  See `:help vim.highlight.on_yank()`
+vim.api.nvim_create_autocmd("TextYankPost", {
+	desc = "Highlight when yanking (copying) text",
+	group = vim.api.nvim_create_augroup("kickstart-highlight-yank", { clear = true }),
+	callback = function()
+		vim.highlight.on_yank()
+	end,
+})
+-- [[ Autocommands ]]
+
+-- [[ LSP ]]
+--------------------------------------------------------------------------------
+-- See https://gpanders.com/blog/whats-new-in-neovim-0-11/ for a nice overview
+-- of how the lsp setup works in neovim 0.11+.
+
+-- This actually just enables the lsp servers.
+-- The configuration is found in the lsp folder inside the nvim config folder,
+-- so in ~.config/lsp/lua_ls.lua for lua_ls, for example.
+
+vim.pack.add({
+	"https://github.com/nvim-treesitter/nvim-treesitter",
+	"https://github.com/neovim/nvim-lspconfig",
+})
+
+vim.api.nvim_create_autocmd('LspAttach', { callback = on_lsp_attach })
+
+
 vim.lsp.config("lua_ls", { on_attach = on_attach })
 vim.lsp.config("basedpyright", {
 	on_attach = on_attach,
@@ -214,6 +286,8 @@ vim.lsp.config("basedpyright", {
 vim.lsp.config("gopls", { on_attach = on_attach })
 
 -- Diagnostics
+vim.lsp.enable("lua_ls", "gopls", "basedpyright")
+
 vim.diagnostic.config()
 
 -- [[ LSP ]]
@@ -222,57 +296,42 @@ vim.diagnostic.config()
 local map = vim.keymap.set
 
 map("n", "<Esc>", function()
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if vim.api.nvim_win_get_config(win).relative == "win" then
-      vim.api.nvim_win_close(win, false)
-    end
-  end
+	for _, win in ipairs(vim.api.nvim_list_wins()) do
+		if vim.api.nvim_win_get_config(win).relative == "win" then
+			vim.api.nvim_win_close(win, false)
+		end
+	end
 end)
 
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
--- Buffers 
+-- Save
+map("n", "<leader>s", "<cmd>w<cr>", { desc = "Save file" })
+
+-- Buffers
 map("n", "<leader>bd", function() vim.api.nvim_buf_delete(0, {}) end, { desc = "Buffer delete" })
 
 -- Diagnostic keymaps
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
 
 -- Terminal
-local function get_terminal_buffer()
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.api.nvim_get_option_value('buftype', { buf = buf }) == 'terminal' then
-      return buf
-    end
-  end
-  return nil
-end
+map("i", "<CR>", function()
+	if vim.fn.pumvisible() == 1 then
+		local ci = vim.fn.complete_info({ "selected" })
+		if ci.selected == -1 then
+			return "<C-n><C-y>" -- select first, then confirm
+		else
+			return "<C-y>" -- confirm current selection
+		end
+	end
+	return "<CR>" -- plain newline
+end, { expr = true, desc = "Confirm completion or newline" })
 
-local function toggle_terminal()
-  local term_buf = get_terminal_buffer()
-
-  if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
-    local found_win = nil
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-      if vim.api.nvim_win_get_buf(win) == term_buf then
-        found_win = win
-        break
-      end
-    end
-
-    if found_win then
-      vim.api.nvim_win_close(found_win, false)
-    else
-      vim.cmd('sb ' .. term_buf)
-      vim.cmd('startinsert')
-    end
-  else
-    vim.cmd('sp | term')
-  end
-end
 
 -- Yank
 map('v', '<C-c>', '"+y')
 
+-- Terminal
 map("n", "<leader>t", toggle_terminal, { desc = "Toggle Terminal" })
 map("t", "<Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
@@ -285,25 +344,26 @@ map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window W
 
 -- Files
 map("n", "<leader>e", function()
-  local netrw_open = false
+	local netrw_open = false
 
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local buf = vim.api.nvim_win_get_buf(win)
-    local ft = vim.bo[buf].filetype
-    if ft == "netrw" then
-      netrw_open = true
-      vim.api.nvim_buf_delete(0, {})
-    end
-  end
+	for _, win in ipairs(vim.api.nvim_list_wins()) do
+		local buf = vim.api.nvim_win_get_buf(win)
+		local ft = vim.bo[buf].filetype
+		if ft == "netrw" then
+			netrw_open = true
+			vim.api.nvim_buf_delete(0, {})
+		end
+	end
 
-  if not netrw_open then
-    vim.cmd("Ex")
-  end
+	if not netrw_open then
+		vim.cmd("Ex")
+	end
 end, { desc = "Open file explorer" })
 map("n", "<leader><leader>", "<cmd>Pick files<CR>", { desc = "Find file" })
+map("n", "<leader>h", "<cmd>Pick help<CR>", { desc = "Find help" })
 
 -- Search
--- map('n', '<leader>sg', builtin.live_grep, {})
+vim.keymap.set("n", "<leader>sg", rg_search_project, { noremap = true, silent = true })
 
 -- Quit
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
@@ -312,158 +372,73 @@ map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
 map("n", "<leader>cm", "<cmd>:Mason<CR>", { desc = "Mason" })
 
 -- Flash
-map({ "n", "x", "o" }, "s", function() require("flash").jump() end, { desc = "Flash"})
-map({ "n", "x", "o" }, "S", function() require("flash").treesitter() end , { desc = "Flash Treesitter" } )
-map("o", "r", function() require("flash").remote() end, { desc = "Remote Flash" } )
-map({ "x", "o" }, "R", function() require("flash").treesitter_search() end, { desc = "Treesitter Search" } )
-map("c", "<c-s>", function() require("flash").toggle() end, { desc = "Toggle Flash Search" })
+map({ "n", "x", "o" }, "s", function() require("flash").jump() end, { desc = "Flash" })
+map({ "n", "x", "o" }, "S", function() require("flash").treesitter() end, { desc = "Flash Treesitter" })
+map("o", "r", function() require("flash").remote() end, { desc = "Remote Flash" })
+map({ "x", "o" }, "R", function() require("flash").treesitter_search() end, { desc = "Treesitter Search" })
 
 -- LazyGit
-local function floating_lazygit()
-  -- Calculate floating window size and position
-  local width = math.floor(vim.o.columns * 0.8)
-  local height = math.floor(vim.o.lines * 0.8)
-  local row = math.floor((vim.o.lines - height) / 2)
-  local col = math.floor((vim.o.columns - width) / 2)
-
-  -- Create floating window config
-  local opts = {
-    relative = "editor",
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    border = "rounded",
-    style = "minimal",
-  }
-
-  -- Create the buffer first
-  local buf = vim.api.nvim_create_buf(false, true)
-  
-  -- Create the floating window with that buffer
-  local win = vim.api.nvim_open_win(buf, true, opts)
-
-  -- IMPORTANT: Set terminal command BEFORE entering insert mode
-  vim.api.nvim_buf_call(buf, function()
-    vim.cmd('terminal lazygit')
-  end)
-  
-  -- Auto-enter terminal mode
-  vim.cmd('startinsert')
-end
-
 if vim.fn.executable("lazygit") == 1 then
-  map("n", "<leader>gg", floating_lazygit, { desc = "Lazygit (Root Dir)" })
+	map("n", "<leader>gg", floating_lazygit, { desc = "Lazygit (Root Dir)" })
 end
-
--- Sessions
--- load the session for the current directory
-map("n", "<leader>qs", function()
-  require("persistence").load()
-end, { desc = "Load session for current dir" })
-
--- select a session to load
-map("n", "<leader>qS", function()
-  require("persistence").select()
-end, { desc = "Find session" })
-
--- load the last session
-map("n", "<leader>ql", function()
-  require("persistence").load({ last = true })
-end, { desc = "Load last session" })
-
--- map("n", "[e", function()
---   vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.ERROR, wrap = true })
--- end, { desc = "Go to previous diagnostics ERROR" })
--- map("n", "]e", function()
---   vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.ERROR, wrap = true })
--- end, { desc = "Go to next diagnostics ERROR" })
---
--- map("n", "[w", function()
---   vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.WARNING, wrap = true })
--- end, { desc = "Go to previous diagnostics WARNING" })
--- map("n", "]w", function()
---   vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.WARNING, wrap = true })
--- end, { desc = "Go to next diagnostics WARNING" })
 
 -- [[ Basic Keymaps ]]
---
 -- [[ Plugins ]]
 
 -- Mini.nvim
-vim.pack.add({ { src =  "https://github.com/nvim-mini/mini.nvim.git" } }, { confirm = false })
+vim.pack.add({ { src = "https://github.com/nvim-mini/mini.nvim" } })
 require("mini.move").setup()
 require("mini.pairs").setup()
 require("mini.pick").setup()
 require("mini.surround").setup({
--- Module mappings. Use `''` (empty string) to disable one.
-mappings = {
-  add = "gsa", -- Add surrounding in Normal and Visual modes
-  delete = "gsd", -- Delete surrounding
-  find = "gsf", -- Find surrounding (to the right)
-  find_left = "gsF", -- Find surrounding (to the left)
-  highlight = "gsh", -- Highlight surrounding
-  replace = "gsr", -- Replace surrounding
-  update_n_lines = "gsn", -- Update `n_lines`
-},
+	-- Module mappings. Use `''` (empty string) to disable one.
+	mappings = {
+		add = "gsa", -- Add surrounding in Normal and Visual modes
+		delete = "gsd", -- Delete surrounding
+		find = "gsf", -- Find surrounding (to the right)
+		find_left = "gsF", -- Find surrounding (to the left)
+		highlight = "gsh", -- Highlight surrounding
+		replace = "gsr", -- Replace surrounding
+		update_n_lines = "gsn", -- Update `n_lines`
+	},
 })
 local ai = require("mini.ai")
 ai.setup({
-{
-  n_lines = 500,
-  custom_textobjects = {
-    o = ai.gen_spec.treesitter({ -- code block
-      a = { "@block.outer", "@conditional.outer", "@loop.outer" },
-      i = { "@block.inner", "@conditional.inner", "@loop.inner" },
-    }),
-    f = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }), -- function
-    c = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }), -- class
-    t = { "<([%p%w]-)%f[^<%w][^<>]->.-</%1>", "^<.->().*()</[^/]->$" }, -- tags
-    d = { "%f[%d]%d+" }, -- digits
-    e = { -- Word with case
-      { "%u[%l%d]+%f[^%l%d]", "%f[%S][%l%d]+%f[^%l%d]", "%f[%P][%l%d]+%f[^%l%d]", "^[%l%d]+%f[^%l%d]" },
-      "^().*()$",
-    },
-    -- g = LazyVim.mini.ai_buffer, -- buffer
-    u = ai.gen_spec.function_call(), -- u for "Usage"
-    U = ai.gen_spec.function_call({ name_pattern = "[%w_]" }), -- without dot in function name
-  },
-},
+	{
+		n_lines = 500,
+		custom_textobjects = {
+			o = ai.gen_spec.treesitter({ -- code block
+				a = { "@block.outer", "@conditional.outer", "@loop.outer" },
+				i = { "@block.inner", "@conditional.inner", "@loop.inner" },
+			}),
+			f = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }), -- function
+			c = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }), -- class
+			t = { "<([%p%w]-)%f[^<%w][^<>]->.-</%1>", "^<.->().*()</[^/]->$" }, -- tags
+			d = { "%f[%d]%d+" },                                      -- digits
+			e = {                                                     -- Word with case
+				{ "%u[%l%d]+%f[^%l%d]", "%f[%S][%l%d]+%f[^%l%d]", "%f[%P][%l%d]+%f[^%l%d]", "^[%l%d]+%f[^%l%d]" },
+				"^().*()$",
+			},
+			-- g = LazyVim.mini.ai_buffer, -- buffer
+			u = ai.gen_spec.function_call(),       -- u for "Usage"
+			U = ai.gen_spec.function_call({ name_pattern = "[%w_]" }), -- without dot in function name
+		},
+	},
 })
+
+require("mini.snippets").setup()
+require("mini.completion").setup()
+
 -- Mini.nvim
 
 -- Auto dark mode
-vim.pack.add({ { src =  "https://github.com/f-person/auto-dark-mode.nvim.git" } }, { confirm = false })
+vim.pack.add({ { src = "https://github.com/f-person/auto-dark-mode.nvim" } })
 require("auto-dark-mode").setup({})
 -- Auto dark mode
 
 -- Flash.nvim
-vim.pack.add({ { src ="https://github.com/folke/flash.nvim.git", } }, { confirm = false })
+vim.pack.add({ { src = "https://github.com/folke/flash.nvim", } })
 require("flash").setup({})
 -- Flash.nvim
-
--- Blink.cmp
-vim.pack.add({ { src = "https://github.com/saghen/blink.cmp.git" } }, { confirm = false })
-require("blink.cmp").setup({
-	keymap = { preset = "enter" },
-
-    appearance = { nerd_font_variant = "mono" },
-
-    completion = { documentation = { auto_show = false } },
-    signature = { enabled = true },
-
-    sources = { default = { "lsp", "path", "snippets", "buffer" } },
-
-    fuzzy = { implementation = "prefer_rust_with_warning" },
-    providers = {
-      lazydev = {
-        name = "LazyDev",
-        module = "lazydev.integrations.blink",
-        score_offset = 100,
-      },
-    },
-  opts_extend = { "sources.default" },
-})
--- Blink.cmp 
 
 -- [[ Plugins ]]
