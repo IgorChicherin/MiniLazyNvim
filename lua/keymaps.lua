@@ -71,22 +71,6 @@ map("n", "<leader>l", "<cmd>:Lazy<CR>", { desc = "Lazy" })
 -- Mason
 map("n", "<leader>cm", "<cmd>:Mason<CR>", { desc = "Mason" })
 
--- Sessions
--- load the session for the current directory
-map("n", "<leader>qs", function()
-  require("persistence").load()
-end, { desc = "Load session for current dir" })
-
--- Select a session to load
-map("n", "<leader>qS", function()
-  require("persistence").select()
-end, { desc = "Find session" })
-
--- Load the last session
-map("n", "<leader>ql", function()
-  require("persistence").load({ last = true })
-end, { desc = "Load last session" })
-
 local lazygit_buf = nil
 local lazygit_win = nil
 
