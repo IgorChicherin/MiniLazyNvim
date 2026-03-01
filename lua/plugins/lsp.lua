@@ -27,8 +27,6 @@ return {
           },
         },
       },
-
-      "saghen/blink.cmp",
     },
     config = function()
       --  This function gets run when an LSP attaches to a particular buffer.

@@ -3,6 +3,10 @@ return {
     "echasnovski/mini.nvim",
     version = false,
     init = function()
+      -- Code completion
+      require("mini.snippets").setup()
+      require("mini.completion").setup()
+
       require("mini.basics").setup()
 
       -- Typing enhacements
