@@ -33,41 +33,7 @@ end, { expr = true, desc = "Confirm completion or newline" })
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
 
 -- Terminal
-local function get_terminal_buffer()
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "terminal" then
-      return buf
-    end
-  end
-  return nil
-end
-
-local function toggle_terminal()
-  local term_buf = get_terminal_buffer()
-
-  if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
-    local found_win = nil
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-      if vim.api.nvim_win_get_buf(win) == term_buf then
-        found_win = win
-        break
-      end
-    end
-
-    if found_win then
-      vim.api.nvim_wdesc = "Toggle terminal"
-      in_close(found_win, false)
-    else
-      vim.cmd("sb " .. term_buf)
-      vim.cmd("startinsert")
-    end
-  else
-    vim.cmd("sp | term")
-  end
-end
-
-map("n", "<leader>t", toggle_terminal, { desc = "Toggle terminal" })
-map("t", "<Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
 -- Resize window using <ctrl> arrow keys
 map("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
