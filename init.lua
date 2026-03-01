@@ -34,6 +34,9 @@ vim.schedule(function()
 	vim.opt.clipboard = "unnamedplus"
 end)
 
+-- Disable wrap
+vim.opt.wrap = false
+
 -- Enable break indent
 vim.opt.breakindent = true
 
@@ -111,12 +114,12 @@ local on_attach = function(client, bufnr)
 	end, opts)
 	map("n", "gd", function() vim.lsp.buf.definition() end, opts)
 	map("n", "K", function() vim.lsp.buf.hover() end, opts)
-	map("n", "<leader>vws", function() vim.lsp.buf.workspace_symbol() end, opts)
+	map("n", "<leader>cs", function() vim.lsp.buf.workspace_symbol() end, opts)
 	map("n", "<leader>vd", function() vim.diagnostic.open_float() end, opts)
 	map("n", "[d", function() vim.diagnostic.goto_next() end, opts)
 	map("n", "]d", function() vim.diagnostic.goto_prev() end, opts)
-	map("n", "<leader>vr", function() vim.lsp.buf.references() end, opts)
-	map("n", "<leader>rn", function() vim.lsp.buf.rename() end, opts)
+	map("n", "<leader>gr", function() vim.lsp.buf.references() end, opts)
+	map("n", "<leader>cr", function() vim.lsp.buf.rename() end, opts)
 	map("i", "<C-k>", function() vim.lsp.buf.signature_help() end, opts)
 	map("n", "<leader>lf", vim.lsp.buf.format, opts)
 end
@@ -153,85 +156,84 @@ local function toggle_terminal()
 	end
 end
 
-local function floating_lazygit()
-	-- Calculate floating window size and position
-	local width = math.floor(vim.o.columns * 0.8)
-	local height = math.floor(vim.o.lines * 0.8)
+local function toggle_lazygit()
+	-- If window exists → close it
+	if lazygit_win and vim.api.nvim_win_is_valid(lazygit_win) then
+		vim.api.nvim_win_close(lazygit_win, true)
+		lazygit_win = nil
+		return
+	end
+
+	-- Create buffer if needed
+	if not lazygit_buf or not vim.api.nvim_buf_is_valid(lazygit_buf) then
+		lazygit_buf = vim.api.nvim_create_buf(false, true)
+	end
+
+	local width = math.floor(vim.o.columns * 0.9)
+	local height = math.floor(vim.o.lines * 0.9)
+
 	local row = math.floor((vim.o.lines - height) / 2)
 	local col = math.floor((vim.o.columns - width) / 2)
 
-	-- Create floating window config
-	local opts = {
+	lazygit_win = vim.api.nvim_open_win(lazygit_buf, true, {
 		relative = "editor",
 		width = width,
 		height = height,
 		row = row,
 		col = col,
-		border = "rounded",
 		style = "minimal",
-	}
+		border = "rounded",
+	})
 
-	-- Create the buffer first
-	local buf = vim.api.nvim_create_buf(false, true)
+	-- Only start lazygit once
+	if vim.bo[lazygit_buf].buftype ~= "terminal" then
+		vim.fn.termopen({ "lazygit" })
+	end
 
-	-- Create the floating window with that buffer
-	local win = vim.api.nvim_open_win(buf, true, opts)
-
-	-- IMPORTANT: Set terminal command BEFORE entering insert mode
-	vim.api.nvim_buf_call(buf, function()
-		vim.cmd('terminal lazygit')
-	end)
-
-	-- Auto-enter terminal mode
-	vim.cmd('startinsert')
+	vim.cmd("startinsert")
 end
 
 local function rg_search_project()
-  local query = vim.fn.input("Search word: ")
-  if query == "" then return end
+	local query = vim.fn.input("Search word: ")
+	if query == "" then return end
 
-  -- Windows-friendly ripgrep
-  local cmd = 'rg --vimgrep --smart-case ' .. vim.fn.shellescape(query) .. ' .'
+	-- Windows-friendly ripgrep
+	local cmd = 'rg --vimgrep --smart-case ' .. vim.fn.shellescape(query) .. ' .'
 
-  -- Читаем вывод
-  local handle = io.popen(cmd)
-  local result = handle:read("*a")
-  handle:close()
+	local handle = io.popen(cmd)
+	local result = handle:read("*a")
+	handle:close()
 
-  if result == "" then
-    vim.notify("No matches found!", vim.log.levels.INFO)
-    return
-  end
+	if result == "" then
+		vim.notify("No matches found!", vim.log.levels.INFO)
+		return
+	end
 
-  local lines = vim.split(result, "\n")
-  local qf_list = {}
+	local lines = vim.split(result, "\n")
+	local qf_list = {}
 
-  for _, line in ipairs(lines) do
-    -- Разбор строки: file:line:col:text, пути могут содержать :
-    local file, lnum, col, text = line:match("^([^\n]-):(%d+):(%d+):(.*)$")
-    if file and lnum and col and text then
-      table.insert(qf_list, {
-        filename = file,
-        lnum = tonumber(lnum),
-        col = tonumber(col),
-        text = text,
-      })
-    end
-  end
+	for _, line in ipairs(lines) do
+		local file, lnum, col, text = line:match("^([^\n]-):(%d+):(%d+):(.*)$")
+		if file and lnum and col and text then
+			table.insert(qf_list, {
+				filename = file,
+				lnum = tonumber(lnum),
+				col = tonumber(col),
+				text = text,
+			})
+		end
+	end
 
-  if #qf_list == 0 then
-    vim.notify("No matches found!", vim.log.levels.INFO)
-    return
-  end
+	if #qf_list == 0 then
+		vim.notify("No matches found!", vim.log.levels.INFO)
+		return
+	end
 
-  -- Устанавливаем quickfix
-  vim.fn.setqflist({}, " ", { title = "rg Search", items = qf_list })
-  vim.cmd("copen")
+	-- Устанавливаем quickfix
+	vim.fn.setqflist({}, " ", { title = "rg Search", items = qf_list })
+	vim.cmd("copen")
 end
-
-
 -- [[ Utils ]]
-
 
 -- [[ Setting options ]]
 
@@ -265,8 +267,15 @@ vim.pack.add({
 	"https://github.com/neovim/nvim-lspconfig",
 })
 
-vim.api.nvim_create_autocmd('LspAttach', { callback = on_lsp_attach })
+require('nvim-treesitter').setup({
+	ensure_installed = { "javascript", "typescript", "python", "c", "cpp", "lua", "vim", "vimdoc", "htmldjango", "go" },
+	sync_install = false,
+	auto_install = true,
+	ignore_install = {},
+	highlight = { additional_vim_regex_highlighting = false, enable = true },
+})
 
+vim.api.nvim_create_autocmd('LspAttach', { callback = on_lsp_attach })
 
 vim.lsp.config("lua_ls", { on_attach = on_attach })
 vim.lsp.config("basedpyright", {
@@ -284,9 +293,10 @@ vim.lsp.config("basedpyright", {
 	},
 })
 vim.lsp.config("gopls", { on_attach = on_attach })
+vim.lsp.config("clangd", { on_attach = on_attach })
 
 -- Diagnostics
-vim.lsp.enable("lua_ls", "gopls", "basedpyright")
+vim.lsp.enable({ "lua_ls", "gopls", "basedpyright", "clangd" })
 
 vim.diagnostic.config()
 
@@ -314,7 +324,7 @@ map("n", "<leader>bd", function() vim.api.nvim_buf_delete(0, {}) end, { desc = "
 -- Diagnostic keymaps
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
 
--- Terminal
+-- Omnifunc
 map("i", "<CR>", function()
 	if vim.fn.pumvisible() == 1 then
 		local ci = vim.fn.complete_info({ "selected" })
@@ -379,7 +389,7 @@ map({ "x", "o" }, "R", function() require("flash").treesitter_search() end, { de
 
 -- LazyGit
 if vim.fn.executable("lazygit") == 1 then
-	map("n", "<leader>gg", floating_lazygit, { desc = "Lazygit (Root Dir)" })
+	map("n", "<leader>gg", toggle_lazygit, { desc = "Lazygit (Root Dir)" })
 end
 
 -- [[ Basic Keymaps ]]
@@ -414,13 +424,13 @@ ai.setup({
 			f = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }), -- function
 			c = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }), -- class
 			t = { "<([%p%w]-)%f[^<%w][^<>]->.-</%1>", "^<.->().*()</[^/]->$" }, -- tags
-			d = { "%f[%d]%d+" },                                      -- digits
-			e = {                                                     -- Word with case
+			d = { "%f[%d]%d+" },                                     -- digits
+			e = {                                                    -- Word with case
 				{ "%u[%l%d]+%f[^%l%d]", "%f[%S][%l%d]+%f[^%l%d]", "%f[%P][%l%d]+%f[^%l%d]", "^[%l%d]+%f[^%l%d]" },
 				"^().*()$",
 			},
 			-- g = LazyVim.mini.ai_buffer, -- buffer
-			u = ai.gen_spec.function_call(),       -- u for "Usage"
+			u = ai.gen_spec.function_call(),      -- u for "Usage"
 			U = ai.gen_spec.function_call({ name_pattern = "[%w_]" }), -- without dot in function name
 		},
 	},
@@ -432,13 +442,19 @@ require("mini.completion").setup()
 -- Mini.nvim
 
 -- Auto dark mode
-vim.pack.add({ { src = "https://github.com/f-person/auto-dark-mode.nvim" } })
-require("auto-dark-mode").setup({})
+vim.pack.add({
+	"https://github.com/f-person/auto-dark-mode.nvim",
+})
+require("auto-dark-mode").setup({
+	update_interval = 1000,
+	-- for gnome dection we need fallback
+	fallback = "light",
+})
 -- Auto dark mode
 
 -- Flash.nvim
-vim.pack.add({ { src = "https://github.com/folke/flash.nvim", } })
-require("flash").setup({})
+vim.pack.add({ "https://github.com/folke/flash.nvim" })
+require("flash").setup()
 -- Flash.nvim
 
 -- [[ Plugins ]]
