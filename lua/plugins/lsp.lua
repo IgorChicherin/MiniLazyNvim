@@ -71,30 +71,9 @@ return {
             return vim.lsp.buf.signature_help()
           end, "Signature Help", "i")
 
-          map("<leader>cs", function()
-            Snacks.picker.lsp_symbols()
-          end, "[S]ymbols")
-
-          map("<leader>cR", function()
-            Snacks.rename.rename_file()
-          end, "Rename file")
-
           map("<leader>cr", vim.lsp.buf.rename, "Rename")
 
           map("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction", { "n", "x", "v" })
-
-          map("]]", function()
-            Snacks.words.jump(vim.v.count1)
-          end, "Next Reference", { "n", "x", "v" })
-          map("[[", function()
-            Snacks.words.jump(-vim.v.count1)
-          end, "Prev Reference", { "n", "x", "v" })
-          map("a-n", function()
-            Snacks.words.jump(vim.v.count1, true)
-          end, "Next Reference", { "n", "x", "v" })
-          map("a-p", function()
-            Snacks.words.jump(-vim.v.count1, true)
-          end, "Prev Reference", { "n", "x", "v" })
 
           -- The following two autocommands are used to highlight references of the
           -- word under your cursor when your cursor rests there for a little while.
