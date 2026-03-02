@@ -76,6 +76,8 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+vim.opt.path:append("**")
+
 if vim.loop.os_uname().sysname == "Windows_NT" then
 	vim.o.shell = "powershell"
 end
@@ -262,7 +264,7 @@ map("v", "<C-c>", '"+y')
 
 -- Terminal
 map("n", "<leader>t", toggle_terminal, { desc = "Toggle Terminal" })
-map("t", "<Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
 -- Resize window using <ctrl> arrow keys
 map("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
@@ -287,8 +289,8 @@ map("n", "<leader>e", function()
 		vim.cmd("Ex")
 	end
 end, { desc = "Open file explorer" })
-map("n", "<leader><leader>", "<cmd>Pick files<CR>", { desc = "Find file" })
-map("n", "<leader>h", "<cmd>Pick help<CR>", { desc = "Find help" })
+map("n", "<leader><leader>", ":find ", { desc = "Find file" })
+map("n", "<leader>h", ":help", { desc = "Find help" })
 
 -- Search
 vim.keymap.set("n", "<leader>sg", rg_search_project, { noremap = true, silent = true })
@@ -298,20 +300,6 @@ map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
 
 -- Mason
 map("n", "<leader>cm", "<cmd>:Mason<CR>", { desc = "Mason" })
-
--- Flash
-map({ "n", "x", "o" }, "s", function()
-	require("flash").jump()
-end, { desc = "Flash" })
-map({ "n", "x", "o" }, "S", function()
-	require("flash").treesitter()
-end, { desc = "Flash Treesitter" })
-map("o", "r", function()
-	require("flash").remote()
-end, { desc = "Remote Flash" })
-map({ "x", "o" }, "R", function()
-	require("flash").treesitter_search()
-end, { desc = "Treesitter Search" })
 
 -- LazyGit
 if vim.fn.executable("lazygit") == 1 then
@@ -522,7 +510,6 @@ require("lazy").setup({
 					},
 				},
 			},
-
 		},
 		config = function()
 			--  This function gets run when an LSP attaches to a particular buffer.
@@ -547,6 +534,14 @@ require("lazy").setup({
 						})
 					end, opts)
 					map("n", "gd", vim.lsp.buf.definition, opts)
+					map("n", "gI", function()
+						vim.lsp.buf.implementation({
+							on_list = function(options)
+								vim.fn.setqflist({}, " ", options)
+								vim.cmd("copen")
+							end,
+						})
+					end, opts)
 					map("n", "K", vim.lsp.buf.hover, opts)
 					map("n", "<leader>cs", vim.lsp.buf.workspace_symbol, opts)
 					map("n", "<leader>vd", vim.diagnostic.open_float, opts)
@@ -902,9 +897,8 @@ require("lazy").setup({
 			})
 
 			-- UI enhacements
-			require("mini.pick").setup()
 			require("mini.notify").setup()
-			require("mini.tabline").setup()
+			require("mini.git").setup()
 			require("mini.icons").setup()
 
 			local statusline = require("mini.statusline")
