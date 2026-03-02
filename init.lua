@@ -236,7 +236,7 @@ end)
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
 -- Save
-map("n", "<leader>s", "<cmd>w!<cr>", { desc = "Save file" })
+map({ "n", "i", "v" }, "<C-s>", "<cmd>w!<cr>", { desc = "Save file" })
 
 -- Buffers
 map("n", "<leader>bd", function()
