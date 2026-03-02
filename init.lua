@@ -98,10 +98,6 @@ local function get_python()
 	return vim.fn.has("win32") == 1 and "python" or "python3"
 end
 
-local on_lsp_attach = function(args)
-	vim.bo[args.buf].omnifunc = 'v:lua.MiniCompletion.completefunc_lsp'
-end
-
 local on_attach = function(client, bufnr)
 	local opts = { noremap = true, silent = true }
 	local map = vim.keymap.set
@@ -112,21 +108,31 @@ local on_attach = function(client, bufnr)
 			end,
 		})
 	end, opts)
-	map("n", "gd", function() vim.lsp.buf.definition() end, opts)
-	map("n", "K", function() vim.lsp.buf.hover() end, opts)
-	map("n", "<leader>cs", function() vim.lsp.buf.workspace_symbol() end, opts)
-	map("n", "<leader>vd", function() vim.diagnostic.open_float() end, opts)
-	map("n", "[d", function() vim.diagnostic.goto_next() end, opts)
-	map("n", "]d", function() vim.diagnostic.goto_prev() end, opts)
-	map("n", "<leader>gr", function() vim.lsp.buf.references() end, opts)
-	map("n", "<leader>cr", function() vim.lsp.buf.rename() end, opts)
-	map("i", "<C-k>", function() vim.lsp.buf.signature_help() end, opts)
+	map("n", "gd", vim.lsp.buf.definition, opts)
+	map("n", "K", vim.lsp.buf.hover, opts)
+	map("n", "<leader>cs", vim.lsp.buf.workspace_symbol, opts)
+	map("n", "<leader>vd", vim.diagnostic.open_float, opts)
+	map("n", "[d", vim.diagnostic.goto_next, opts)
+	map("n", "]d", vim.diagnostic.goto_prev, opts)
+	map("n", "<leader>gr", vim.lsp.buf.references, opts)
+	map("n", "<leader>cr", vim.lsp.buf.rename, opts)
+	map("i", "<C-k>", vim.lsp.buf.signature_help, opts)
 	map("n", "<leader>lf", vim.lsp.buf.format, opts)
+
+	-- The following code creates a keymap to toggle inlay hints in your
+	-- code, if the language server you are using supports them
+	--
+	-- This may be unwanted, since they displace some of your code
+	if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
+		map("n", "<leader>th", function()
+			vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = bufnr }))
+		end, opts)
+	end
 end
 
 local function get_terminal_buffer()
 	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-		if vim.api.nvim_get_option_value('buftype', { buf = buf }) == 'terminal' then
+		if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "terminal" then
 			return buf
 		end
 	end
@@ -148,11 +154,11 @@ local function toggle_terminal()
 		if found_win then
 			vim.api.nvim_win_close(found_win, false)
 		else
-			vim.cmd('sb ' .. term_buf)
-			vim.cmd('startinsert')
+			vim.cmd("sb " .. term_buf)
+			vim.cmd("startinsert")
 		end
 	else
-		vim.cmd('sp | term')
+		vim.cmd("sp | term")
 	end
 end
 
@@ -195,10 +201,12 @@ end
 
 local function rg_search_project()
 	local query = vim.fn.input("Search word: ")
-	if query == "" then return end
+	if query == "" then
+		return
+	end
 
 	-- Windows-friendly ripgrep
-	local cmd = 'rg --vimgrep --smart-case ' .. vim.fn.shellescape(query) .. ' .'
+	local cmd = "rg --vimgrep --smart-case " .. vim.fn.shellescape(query) .. " ."
 
 	local handle = io.popen(cmd)
 	local result = handle:read("*a")
@@ -261,43 +269,97 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 -- This actually just enables the lsp servers.
 -- The configuration is found in the lsp folder inside the nvim config folder,
 -- so in ~.config/lsp/lua_ls.lua for lua_ls, for example.
+--
+
+local parsers = { "lua", "go", "cpp", "python", "yaml" }
+local langs = { "lua_ls", "gopls", "basedpyright", "clangd", "stylua" }
 
 vim.pack.add({
 	"https://github.com/nvim-treesitter/nvim-treesitter",
+	"https://github.com/williamboman/mason.nvim",
+	"https://github.com/williamboman/mason-lspconfig.nvim",
 	"https://github.com/neovim/nvim-lspconfig",
 })
 
-require('nvim-treesitter').setup({
-	ensure_installed = { "javascript", "typescript", "python", "c", "cpp", "lua", "vim", "vimdoc", "htmldjango", "go" },
-	sync_install = false,
-	auto_install = true,
-	ignore_install = {},
-	highlight = { additional_vim_regex_highlighting = false, enable = true },
+require("mason").setup()
+require("nvim-treesitter").setup({ ensure_installed = parsers })
+require("mason-lspconfig").setup({ ensure_installed = langs })
+
+vim.api.nvim_create_autocmd("FileType", {
+	callback = function(args)
+		local lang = vim.treesitter.language.get_lang(args.match)
+
+		if not lang then
+			return
+		end
+
+		-- Try to load parser (won't error if missing)
+		pcall(vim.treesitter.language.add, lang)
+
+		-- Start Treesitter highlighting
+		pcall(vim.treesitter.start, args.buf, lang)
+	end,
 })
 
-vim.api.nvim_create_autocmd('LspAttach', { callback = on_lsp_attach })
-
-vim.lsp.config("lua_ls", { on_attach = on_attach })
-vim.lsp.config("basedpyright", {
+vim.lsp.config("gopls", { on_attach = on_attach })
+vim.lsp.config("lua_ls", {
 	on_attach = on_attach,
-	root_dir = require("lspconfig.util").root_pattern(".git", "setup.py", "pyproject.toml", "requirements.txt"),
-	settings = {
-		python = {
-			pythonPath = get_python(),
-			analysis = {
-				autoSearchPaths = true,
-				useLibraryCodeForTypes = true,
-				typeCheckingMode = 'basic'
-			},
+	Lua = {
+		completion = {
+			callSnippet = "Replace",
 		},
 	},
 })
-vim.lsp.config("gopls", { on_attach = on_attach })
-vim.lsp.config("clangd", { on_attach = on_attach })
+vim.lsp.config("basedpyright", {
+	on_attach = on_attach,
+	-- root_dir = ".git", "setup.py", "pyproject.toml", "requirements.txt"),
+	python = {
+		pythonPath = get_python(),
+		analysis = {
+			autoSearchPaths = true,
+			useLibraryCodeForTypes = true,
+			typeCheckingMode = "basic",
+		},
+	},
+})
 
+vim.lsp.config("clangd", {
+	on_attach = on_attach,
+	keys = {
+		{ "<leader>ch", "<cmd>ClangdSwitchSourceHeader<cr>", desc = "Switch Source/Header (C/C++)" },
+	},
+	-- root_dir = function(fname)
+	-- 	return require("lspconfig.util").root_pattern(
+	-- 		"Makefile",
+	-- 		"configure.ac",
+	-- 		"configure.in",
+	-- 		"config.h.in",
+	-- 		"meson.build",
+	-- 		"meson_options.txt",
+	-- 		"build.ninja"
+	-- 	)(fname) or require("lspconfig.util").root_pattern("compile_commands.json", "compile_flags.txt")(fname) or require(
+	-- 		"lspconfig.util"
+	-- 	).find_git_ancestor(fname)
+	-- end,
+	capabilities = {
+		offsetEncoding = { "utf-16" },
+	},
+	cmd = {
+		"clangd",
+		"--background-index",
+		"--clang-tidy",
+		"--header-insertion=iwyu",
+		"--completion-style=detailed",
+		"--function-arg-placeholders",
+		"--fallback-style=llvm",
+	},
+	init_options = {
+		usePlaceholders = true,
+		completeUnimported = true,
+		clangdFileStatus = true,
+	},
+})
 -- Diagnostics
-vim.lsp.enable({ "lua_ls", "gopls", "basedpyright", "clangd" })
-
 vim.diagnostic.config()
 
 -- [[ LSP ]]
@@ -316,10 +378,12 @@ end)
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
 -- Save
-map("n", "<leader>s", "<cmd>w<cr>", { desc = "Save file" })
+map("n", "<leader>s", "<cmd>w!<cr>", { desc = "Save file" })
 
 -- Buffers
-map("n", "<leader>bd", function() vim.api.nvim_buf_delete(0, {}) end, { desc = "Buffer delete" })
+map("n", "<leader>bd", function()
+	vim.api.nvim_buf_delete(0, {})
+end, { desc = "Buffer delete" })
 
 -- Diagnostic keymaps
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
@@ -337,14 +401,12 @@ map("i", "<CR>", function()
 	return "<CR>" -- plain newline
 end, { expr = true, desc = "Confirm completion or newline" })
 
-
 -- Yank
-map('v', '<C-c>', '"+y')
+map("v", "<C-c>", '"+y')
 
 -- Terminal
 map("n", "<leader>t", toggle_terminal, { desc = "Toggle Terminal" })
 map("t", "<Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
-
 
 -- Resize window using <ctrl> arrow keys
 map("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
@@ -382,10 +444,18 @@ map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
 map("n", "<leader>cm", "<cmd>:Mason<CR>", { desc = "Mason" })
 
 -- Flash
-map({ "n", "x", "o" }, "s", function() require("flash").jump() end, { desc = "Flash" })
-map({ "n", "x", "o" }, "S", function() require("flash").treesitter() end, { desc = "Flash Treesitter" })
-map("o", "r", function() require("flash").remote() end, { desc = "Remote Flash" })
-map({ "x", "o" }, "R", function() require("flash").treesitter_search() end, { desc = "Treesitter Search" })
+map({ "n", "x", "o" }, "s", function()
+	require("flash").jump()
+end, { desc = "Flash" })
+map({ "n", "x", "o" }, "S", function()
+	require("flash").treesitter()
+end, { desc = "Flash Treesitter" })
+map("o", "r", function()
+	require("flash").remote()
+end, { desc = "Remote Flash" })
+map({ "x", "o" }, "R", function()
+	require("flash").treesitter_search()
+end, { desc = "Treesitter Search" })
 
 -- LazyGit
 if vim.fn.executable("lazygit") == 1 then
@@ -424,20 +494,17 @@ ai.setup({
 			f = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }), -- function
 			c = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }), -- class
 			t = { "<([%p%w]-)%f[^<%w][^<>]->.-</%1>", "^<.->().*()</[^/]->$" }, -- tags
-			d = { "%f[%d]%d+" },                                     -- digits
-			e = {                                                    -- Word with case
+			d = { "%f[%d]%d+" }, -- digits
+			e = { -- Word with case
 				{ "%u[%l%d]+%f[^%l%d]", "%f[%S][%l%d]+%f[^%l%d]", "%f[%P][%l%d]+%f[^%l%d]", "^[%l%d]+%f[^%l%d]" },
 				"^().*()$",
 			},
 			-- g = LazyVim.mini.ai_buffer, -- buffer
-			u = ai.gen_spec.function_call(),      -- u for "Usage"
+			u = ai.gen_spec.function_call(), -- u for "Usage"
 			U = ai.gen_spec.function_call({ name_pattern = "[%w_]" }), -- without dot in function name
 		},
 	},
 })
-
-require("mini.snippets").setup()
-require("mini.completion").setup()
 
 -- Mini.nvim
 
@@ -456,5 +523,21 @@ require("auto-dark-mode").setup({
 vim.pack.add({ "https://github.com/folke/flash.nvim" })
 require("flash").setup()
 -- Flash.nvim
+
+-- Blink
+vim.pack.add({
+	"https://github.com/saghen/blink.cmp",
+})
+require("blink.cmp").setup({
+	keymap = { preset = "enter" },
+	appearance = { nerd_font_variant = "mono" },
+
+	completion = { documentation = { auto_show = false } },
+	signature = { enabled = true },
+
+	sources = { default = { "lsp", "path", "snippets", "buffer" } },
+	fuzzy = { implementation = "lua" },
+})
+-- Blink
 
 -- [[ Plugins ]]
