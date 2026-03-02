@@ -942,4 +942,10 @@ require("lazy").setup({
 			require("mini.misc").setup({ make_global = { "put", "put_text" } })
 		end,
 	},
+	{
+		"f-person/auto-dark-mode.nvim",
+		opts = {
+			update_interval = 1000,
+		},
+	},
 })
