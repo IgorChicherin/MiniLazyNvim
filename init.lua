@@ -27,6 +27,7 @@ vim.opt.cursorline = true
 vim.opt.scrolloff = 10
 vim.opt.path:append("**")
 
+
 if vim.uv.os_uname().sysname == "Windows_NT" then
 	vim.o.shell = "powershell"
 end
@@ -60,6 +61,9 @@ vim.api.nvim_create_autocmd("LspAttach", {
 	callback = function(event)
 		local map = vim.keymap.set
 		local opts = { noremap = true, silent = true, buffer = event.buf }
+
+		-- Включаем omnifunc для LSP автодополнения
+		vim.api.nvim_set_option_value("omnifunc", "v:lua.vim.lsp.omnifunc", { buf = event.buf })
 
 		map("n", "gd", vim.lsp.buf.definition, opts)
 		map("n", "gI", vim.lsp.buf.implementation, opts)
@@ -313,7 +317,6 @@ local dap = clone_or_update("mfussenegger/nvim-dap", pack_path)
 local nvim_nio = clone_or_update("nvim-neotest/nvim-nio", pack_path)
 local dapui = clone_or_update("rcarriga/nvim-dap-ui", pack_path)
 local treesitter = clone_or_update("nvim-treesitter/nvim-treesitter", pack_path)
-local blink = clone_or_update("saghen/blink.cmp", pack_path)
 local flash = clone_or_update("folke/flash.nvim", pack_path)
 local auto_dark = clone_or_update("f-person/auto-dark-mode.nvim", pack_path)
 local mini = clone_or_update("echasnovski/mini.nvim", pack_path)
@@ -418,14 +421,14 @@ require("nvim-treesitter").setup({
 	highlight = { enable = true },
 })
 
--- [[ blink.cmp ]]
-require("blink.cmp").setup({
-	keymap = { preset = "enter" },
-	appearance = { nerd_font_variant = "mono" },
-	completion = { documentation = { auto_show = false } },
-	signature = { enabled = true },
-	sources = { default = { "lsp", "path", "snippets", "buffer" } },
-	fuzzy = { implementation = "lua" },
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = "go",
+	callback = function()
+		local ok = pcall(vim.treesitter.get_parser, 0, "go")
+		if ok then
+			vim.treesitter.start()
+		end
+	end,
 })
 
 -- [[ flash.nvim ]]
