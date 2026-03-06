@@ -490,6 +490,8 @@ require("mini.notify").setup()
 require("mini.git").setup()
 require("mini.icons").setup()
 
+require("mini.completion").setup()
+
 local statusline = require("mini.statusline")
 local icons = require("mini.icons")
 
