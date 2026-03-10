@@ -492,6 +492,7 @@ ai.setup({
 require("mini.notify").setup()
 require("mini.git").setup()
 require("mini.icons").setup()
+require("mini.tabline").setup()
 
 require("mini.completion").setup()
 
