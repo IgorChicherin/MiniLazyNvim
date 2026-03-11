@@ -27,8 +27,6 @@ vim.opt.cursorline = true
 vim.opt.scrolloff = 10
 vim.opt.path:append("**")
 
-vim.cmd.colorscheme("tokyonight")
-
 
 if vim.uv.os_uname().sysname == "Windows_NT" then
 	vim.o.shell = "powershell"
@@ -323,7 +321,13 @@ local flash = clone_or_update("folke/flash.nvim", pack_path)
 local auto_dark = clone_or_update("f-person/auto-dark-mode.nvim", pack_path)
 local mini = clone_or_update("echasnovski/mini.nvim", pack_path)
 local snippets = clone_or_update("rafamadriz/friendly-snippets", pack_path)
-local tokyonight = clone_or_update( "folke/tokyonight.nvim", pack_path)
+local tokyonight = clone_or_update("folke/tokyonight.nvim", pack_path)
+
+-- Apply colorscheme after plugin is loaded
+local ok, _ = pcall(vim.cmd.colorscheme, "tokyonight")
+if not ok then
+	vim.notify("Tokyonight theme not found, using default", vim.log.levels.WARN)
+end
 
 -- Load optional plugins after cloning
 require("mason").setup()
