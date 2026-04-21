@@ -39,7 +39,7 @@ map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window W
 
 -- Files
 map("n", "<leader>e", function()
-  require("mini.files").open()
+  snacks_picker().explorer()
 end, { desc = "Open file explorer" })
 
 map("n", "<leader><leader>", function()

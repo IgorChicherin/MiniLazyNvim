@@ -62,7 +62,6 @@ vim.schedule(function()
   })
 
   -- UI enhancements
-  require("mini.files").setup({ mappings = { synchronize = "<CR>" } })
   require("mini.pick").setup()
   require("mini.git").setup()
   require("mini.notify").setup()
