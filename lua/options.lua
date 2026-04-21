@@ -35,6 +35,9 @@ vim.schedule(function()
   vim.opt.clipboard = "unnamedplus"
 end)
 
+-- new UI
+require("vim._core.ui2").enable({})
+
 -- Enable break indent
 vim.opt.breakindent = true
 
