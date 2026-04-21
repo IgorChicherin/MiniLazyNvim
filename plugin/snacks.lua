@@ -48,7 +48,6 @@ vim.schedule(function()
       sections = {
         { section = "header", padding = 2 },
         { section = "keys", gap = 1, padding = 1 },
-        { section = "recent_files", icon = " ", title = "Recent Files", indent = 2, padding = 1, opts = { limit = 5 } },
       },
     },
     indent = { enabled = true },
