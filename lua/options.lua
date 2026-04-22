@@ -77,7 +77,11 @@ vim.opt.cursorline = true
 vim.opt.scrolloff = 10
 
 if vim.loop.os_uname().sysname == "Windows_NT" then
-  vim.o.shell = "powershell"
+  vim.opt.shell = "powershell.exe"
+  vim.opt.shellcmdflag = "-NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command"
+
+  vim.opt.shellquote = ""
+  vim.opt.shellxquote = ""
 end
 
 vim.diagnostic.config({ virtual_text = false, virtual_lines = { current_line = true }, jump = { float = true } })
