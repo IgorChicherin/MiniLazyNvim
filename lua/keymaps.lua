@@ -43,7 +43,7 @@ map("n", "<leader>e", function()
 end, { desc = "Open file explorer" })
 
 map("n", "<leader><leader>", function()
-  snacks_picker().picker.smart()
+  snacks_picker().picker.files()
 end, { desc = "Find file" })
 
 -- Quit
