@@ -31,6 +31,7 @@ vim.opt.splitbelow = true
 vim.opt.cursorline = true
 vim.opt.scrolloff = 10
 vim.opt.path:append("**")
+vim.opt.cmdheight = 0
 
 if vim.loop.os_uname().sysname == "Windows_NT" then
   vim.opt.shell = "powershell.exe"
@@ -64,6 +65,9 @@ end
 -- ============================================================
 -- vim.pack — Built-in Plugin Manager (Neovim 0.12+)
 -- ============================================================
+
+vim.cmd("packadd nvim.undotree")
+require("vim._core.ui2").enable()
 
 vim.pack.add({
 	-- LSP (configs loaded from nvim-lspconfig runtime)
@@ -362,6 +366,7 @@ vim.api.nvim_set_hl(0, "FlashLabel", {
 })
 
 
+
 -- ============================================================
 -- Keymaps
 -- ============================================================
@@ -397,7 +402,6 @@ map("i", "<CR>", function()
 end, { expr = true, desc = "Confirm completion or newline" })
 
 map("v", "<C-c>", '"+y')
--- map("n", "<leader>t", toggle_terminal, { desc = "Toggle Terminal" })
 map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
 map("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
@@ -406,6 +410,7 @@ map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Wi
 map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
 
 map("n", "<leader><leader>", ":find ", { desc = "Find file" })
+map("n", "<leader>u", require("undotree").open, { desc = "Find file" })
 map("n", "<leader>h", ":help", { desc = "Find help" })
 map("n", "<leader>sg", rg_search_project, { noremap = true, silent = true })
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
@@ -424,7 +429,7 @@ end
 -- ============================================================
 -- flash.nvim
 -- ============================================================
-require("flash").setup({ label = { bg = "#ff007c" } })
+require("flash").setup()
 map({ "n", "x", "o" }, "s", function() require("flash").jump() end, { desc = "Flash" })
 map({ "n", "o", "x" }, "S", function() require("flash").treesitter() end, { desc = "Flash Treesitter" })
 map("o", "r", function() require("flash").remote() end, { desc = "Remote Flash" })
