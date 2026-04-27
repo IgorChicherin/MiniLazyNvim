@@ -91,16 +91,10 @@ vim.pack.add({
 })
 
 
-local snacks = require("snacks")
-if not snacks.did_setup then
-  snacks.setup({
-    input = { enabled = true },
-    picker = { enabled = true },
-  })
-end
 
 local function snacks_picker()
-  return snacks
+  vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+  return require("snacks")
 end
 
 
