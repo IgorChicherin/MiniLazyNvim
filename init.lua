@@ -341,6 +341,12 @@ map("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
 map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Width" })
 map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
 
+-- Windows movements
+map("n", "<C-h>", "<C-w><C-h>", { desc = "Move focus to the left window" })
+map("n", "<C-l>", "<C-w><C-l>", { desc = "Move focus to the right window" })
+map("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower window" })
+map("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
+
 map("n", "<leader>u", require("undotree").open, { desc = "Open file explorer" })
 map("n", "<leader><leader>", snacks_picker().picker.files, { desc = "Find file" })
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
