@@ -86,7 +86,14 @@ vim.pack.add({
 	{ src = "https://github.com/f-person/auto-dark-mode.nvim.git" },
 	{ src = "https://github.com/echasnovski/mini.nvim.git" },
 	{ src = "https://github.com/rafamadriz/friendly-snippets.git" },
+	{ src = "https://github.com/folke/snacks.nvim.git"}
 })
+
+
+local function snacks_picker()
+  vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+  return require("snacks")
+end
 
 
 -- PackUpdate command
@@ -166,6 +173,12 @@ vim.lsp.config("clangd", {
 	},
 })
 
+vim.lsp.config('intelephense', {
+    cmd = { 'intelephense', '--stdio' },
+    filetypes = { 'php' },
+    root_markers = { 'composer.json', '.git' },
+})
+
 -- LSP keymaps (attached on LspAttach)
 vim.api.nvim_create_autocmd("LspAttach", {
 	group = vim.api.nvim_create_augroup("lsp-attach", { clear = true }),
@@ -209,13 +222,13 @@ vim.api.nvim_create_autocmd("LspAttach", {
 })
 
 -- Enable LSP servers
-vim.lsp.enable({ "gopls", "ruff", "basedpyright", "lua_ls", "clangd" })
+vim.lsp.enable({ "gopls", "ruff", "basedpyright", "lua_ls", "clangd", "intelephense" })
 
 -- ============================================================
 -- Treesitter (Neovim 0.12)
 -- ============================================================
 require("nvim-treesitter").setup({
-	ensure_installed = { "lua", "python", "go", "c", "cpp" },
+	ensure_installed = { "lua", "python", "go", "c", "cpp", "php"},
 	highlight = {
 		enable = true,
 		additional_vim_regex_highlighting = false,
@@ -224,7 +237,7 @@ require("nvim-treesitter").setup({
 
 -- Ensure treesitter highlight runs on filetype
 vim.api.nvim_create_autocmd("FileType", {
-	pattern = { "go", "lua", "python", "c", "cpp" },
+	pattern = { "go", "lua", "python", "c", "cpp" , "php"},
 	callback = function(args)
 		local lang = vim.treesitter.language.get_lang(args.match)
 		if lang and pcall(vim.treesitter.get_parser, args.buf, lang) then
@@ -270,85 +283,6 @@ map("n", "<leader>db", function() dap.toggle_breakpoint() end, { desc = "Toggle 
 map("n", "<leader>du", function() dapview.toggle() end, { desc = "Toggle DAP UI" })
 
 -- ============================================================
--- Utils
--- ============================================================
-local lazygit_win = nil
-local lazygit_buf = nil
-
-local function toggle_lazygit()
-	if lazygit_win and vim.api.nvim_win_is_valid(lazygit_win) then
-		vim.api.nvim_win_close(lazygit_win, true)
-		lazygit_win = nil
-		return
-	end
-
-	if not lazygit_buf or not vim.api.nvim_buf_is_valid(lazygit_buf) then
-		lazygit_buf = vim.api.nvim_create_buf(false, true)
-	end
-
-	local width = math.floor(vim.o.columns * 0.9)
-	local height = math.floor(vim.o.lines * 0.9)
-	local row = math.floor((vim.o.lines - height) / 2)
-	local col = math.floor((vim.o.columns - width) / 2)
-
-	lazygit_win = vim.api.nvim_open_win(lazygit_buf, true, {
-		relative = "editor",
-		width = width,
-		height = height,
-		row = row,
-		col = col,
-		style = "minimal",
-		border = "rounded",
-	})
-
-	if vim.bo[lazygit_buf].buftype ~= "terminal" then
-		vim.fn.termopen({ "lazygit" })
-	end
-
-	vim.cmd("startinsert")
-end
-
-local function rg_search_project()
-	local query = vim.fn.input("Search word: ")
-	if query == "" then
-		return
-	end
-
-	local cmd = "rg --vimgrep --smart-case " .. vim.fn.shellescape(query) .. " ."
-	local handle = io.popen(cmd)
-	local result = handle:read("*a")
-	handle:close()
-
-	if result == "" then
-		vim.notify("No matches found!", vim.log.levels.INFO)
-		return
-	end
-
-	local lines = vim.split(result, "\n")
-	local qf_list = {}
-
-	for _, line in ipairs(lines) do
-		local file, lnum, col, text = line:match("^([^\n]-):(%d+):(%d+):(.*)$")
-		if file and lnum and col and text then
-			table.insert(qf_list, {
-				filename = file,
-				lnum = tonumber(lnum),
-				col = tonumber(col),
-				text = text,
-			})
-		end
-	end
-
-	if #qf_list == 0 then
-		vim.notify("No matches found!", vim.log.levels.INFO)
-		return
-	end
-
-	vim.fn.setqflist({}, " ", { title = "rg Search", items = qf_list })
-	vim.cmd("copen")
-end
-
--- ============================================================
 -- Autocommands
 -- ============================================================
 vim.api.nvim_create_autocmd("TextYankPost", {
@@ -383,9 +317,8 @@ end)
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 map({ "n", "i", "v" }, "<C-s>", "<cmd>w!<cr>", { desc = "Save file" })
 
-map("n", "<leader>bd", function()
-	vim.api.nvim_buf_delete(0, { force = vim.bo.buftype == "terminal" })
-end, { desc = "Buffer delete" })
+map("n", "<leader>bd", function() snacks_picker().bufdelete() end, { desc = "Buffer delete" })
+map("n", "<leader>bo", snacks_picker().bufdelete.other, { desc = "Delete Other Buffers" })
 
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
 
@@ -393,8 +326,7 @@ map("i", "<CR>", function()
 	if vim.fn.pumvisible() == 1 then
 		local ci = vim.fn.complete_info({ "selected" })
 		if ci.selected == -1 then
-			return "<C-n><C-y>"
-		else
+			return "<C-n><C-y>" else
 			return "<C-y>"
 		end
 	end
@@ -402,18 +334,46 @@ map("i", "<CR>", function()
 end, { expr = true, desc = "Confirm completion or newline" })
 
 map("v", "<C-c>", '"+y')
-map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
-
 map("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
 map("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
 map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Width" })
 map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
 
-map("n", "<leader><leader>", ":find ", { desc = "Find file" })
-map("n", "<leader>u", require("undotree").open, { desc = "Find file" })
-map("n", "<leader>h", ":help", { desc = "Find help" })
-map("n", "<leader>sg", rg_search_project, { noremap = true, silent = true })
+map("n", "<leader>u", require("undotree").open, { desc = "Open file explorer" })
+map("n", "<leader><leader>", snacks_picker().picker.files, { desc = "Find file" })
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
+map("n", "<leader>e", function() snacks_picker().explorer() end, { desc = "Open file explorer" })
+
+-- Terminal Mappings
+map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+-- floating terminal
+map("n", "<c-/>", function()
+  snacks_picker().terminal(nil, { cwd = vim.uv.cwd() })
+end, { desc = "Terminal (Root Dir)" })
+map("n", "<c-_>", function()
+  snacks_picker().terminal(nil, { cwd = vim.uv.cwd() })
+end, { desc = "which_key_ignore" })
+
+-- Terminal Mappings
+map("t", "<C-/>", "<cmd>close<cr>", { desc = "Hide Terminal" })
+map("t", "<c-_>", "<cmd>close<cr>", { desc = "which_key_ignore" })
+
+-- Snacks
+map("n", "<leader>sf", snacks_picker().picker.files, { desc = "[S]earch [F]ile" })
+map("n", "<leader>sp",  snacks_picker().picker.projects, { desc = "[S]earch [P]roject" })
+map("n", "<leader>sb",  snacks_picker().picker.buffers, { desc = "[S]earch [B]uffer" })
+map("n", "<leader>sg",  snacks_picker().picker.grep, { desc = "[S]earch [G]rep" })
+map("n", "<leader>sc",  function() snacks_picker().picker.files({ cwd = vim.fn.stdpath("config") }) end, { desc = "[S]earch [C]onfig file" })
+map("n", "<leader>sh",  snacks_picker().picker.command_history, { desc = "[S]earch command [h]istory" })
+map("n", "<leader>sC",  snacks_picker().picker.commands, { desc = "[S]earch [C]ommands" })
+map("n", "<leader>sH",  snacks_picker().picker.help, { desc = "[S]earch [H]elp" })
+map("n", "<leader>sk",  snacks_picker().picker.keymaps, { desc = "[S]earch [k]eymaps" })
+map("n", "<leader>sm",  snacks_picker().picker.marks, { desc = "[S]earch [m]arks" })
+map("n", "<leader>sq",  snacks_picker().picker.qflist, { desc = "[S]earch [q]uickfix" })
+map("n", "<leader>sr",  snacks_picker().picker.registers, { desc = "[S]earch [r]egisters" })
+map("n", "<leader>uC",  snacks_picker().picker.colorschemes, { desc = "[U]I [C]olorschemes" })
+map("n", "<leader>sGl", snacks_picker().picker.git_log, { desc = "[S]earch [G]it [L]og" })
+map("n", "<leader>sGs", snacks_picker().picker.git_status, { desc = "[S]earch [G]it [S]tatus" })
 
 -- Buffer navigation
 map("n", "H", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
@@ -423,7 +383,7 @@ map("n", "L", "<cmd>bnext<cr>", { desc = "Next Buffer" })
 map("n", "<leader>pu", "<cmd>PackUpdate<CR>", { desc = "Update plugins" })
 
 if vim.fn.executable("lazygit") == 1 then
-	map("n", "<leader>gg", toggle_lazygit, { desc = "Lazygit (Root Dir)" })
+	map("n", "<leader>gg", function() snacks_picker().lazygit() end, { desc = "Lazygit (Root Dir)" })
 end
 
 -- ============================================================
