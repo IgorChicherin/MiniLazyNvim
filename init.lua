@@ -47,8 +47,9 @@ vim.diagnostic.config({ jump = { float = true } })
 vim.opt.complete = ".,w,b,u,t"
 vim.opt.pumheight = 10
 
--- Neovim 0.12: enable native autocomplete in insert mode
-vim.opt.autocomplete = true
+-- Let `mini.completion` drive insert completion to avoid conflicts with
+-- prompt/picker UIs that install their own completion handlers.
+vim.opt.autocomplete = false
 
 -- Neovim 0.12: inline diff in diffopt
 vim.opt.diffopt:append("inline:char")
@@ -90,9 +91,16 @@ vim.pack.add({
 })
 
 
+local snacks = require("snacks")
+if not snacks.did_setup then
+  snacks.setup({
+    input = { enabled = true },
+    picker = { enabled = true },
+  })
+end
+
 local function snacks_picker()
-  vim.pack.add({ "https://github.com/folke/snacks.nvim" })
-  return require("snacks")
+  return snacks
 end
 
 
@@ -186,8 +194,8 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		local map = vim.keymap.set
 		local opts = { noremap = true, silent = true, buffer = event.buf }
 
-		-- Enable native LSP completion
-		vim.api.nvim_set_option_value("omnifunc", "v:lua.vim.lsp.omnifunc", { buf = event.buf })
+		-- Route LSP completion through `mini.completion`.
+		vim.api.nvim_set_option_value("omnifunc", "v:lua.MiniCompletion.completefunc_lsp", { buf = event.buf })
 
 		map("n", "gd", vim.lsp.buf.definition, opts)
 		map("n", "gI", vim.lsp.buf.implementation, opts)
@@ -452,7 +460,19 @@ require("mini.git").setup()
 require("mini.icons").setup()
 -- require("mini.tabline").setup()
 
-require("mini.completion").setup()
+require("mini.completion").setup({
+	lsp_completion = {
+		source_func = "omnifunc",
+		auto_setup = false,
+	},
+})
+
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "snacks_input", "snacks_picker_input", "snacks_picker_list", "snacks_picker_preview" },
+	callback = function()
+		vim.b.minicompletion_disable = true
+	end,
+})
 
 -- local statusline = require("mini.statusline")
 -- local icons = require("mini.icons")
