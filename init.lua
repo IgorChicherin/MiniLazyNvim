@@ -45,6 +45,7 @@ end
 vim.diagnostic.config({ jump = { float = true } })
 
 vim.opt.complete = ".,w,b,u,t"
+vim.opt.completeopt = "menuone,noselect,fuzzy"
 vim.opt.pumheight = 10
 
 -- Let `mini.completion` drive insert completion to avoid conflicts with
@@ -460,10 +461,17 @@ require("mini.git").setup()
 require("mini.icons").setup()
 -- require("mini.tabline").setup()
 
+local fuzzy_process_items = function(items, base)
+	return MiniCompletion.default_process_items(items, base, {
+		filtersort = "fuzzy",
+	})
+end
+
 require("mini.completion").setup({
 	lsp_completion = {
 		source_func = "omnifunc",
 		auto_setup = false,
+		process_items = fuzzy_process_items,
 	},
 })
 
