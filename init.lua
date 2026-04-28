@@ -365,6 +365,7 @@ map("n", "<leader>u", require("undotree").open, { desc = "Open file explorer" })
 map("n", "<leader><leader>", snacks_picker().picker.files, { desc = "Find file" })
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "Quit All" })
 map("n", "<leader>e", function() snacks_picker().explorer() end, { desc = "Open file explorer" })
+map("n", "<leader>f", vim.lsp.buf.format, { desc = "Code [F]ormat" })
 
 -- Terminal Mappings
 map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
