@@ -69,7 +69,6 @@ local function set_colorscheme(scheme)
 	end
 end
 
-set_colorscheme("tokyonight")
 
 if vim.g.have_nerd_font then
 	local signs = { ERROR = " ", WARN = " ", INFO = " ", HINT = " " }
@@ -110,6 +109,7 @@ vim.pack.add({
 	{ src = "https://github.com/folke/snacks.nvim.git" }
 })
 
+set_colorscheme("tokyonight")
 
 local function snacks_picker()
 	vim.pack.add({ "https://github.com/folke/snacks.nvim" })
