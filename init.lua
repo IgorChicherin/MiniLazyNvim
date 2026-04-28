@@ -95,6 +95,7 @@ vim.pack.add({
 
 	-- Treesitter
 	{ src = "https://github.com/nvim-treesitter/nvim-treesitter.git", build = ":TSUpdate" },
+	{ src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects.git" },
 
 	-- DAP
 	{ src = "https://github.com/mfussenegger/nvim-dap.git" },
@@ -458,11 +459,24 @@ require("mini.surround").setup({
 })
 
 local ai = require("mini.ai")
+local function safe_treesitter_textobject(captures)
+	local ts_textobject = ai.gen_spec.treesitter(captures)
+
+	return function(ai_type, ...)
+		local ok, result = pcall(ts_textobject, ai_type, ...)
+		if ok then
+			return result
+		end
+	end
+end
+
 ai.setup({
 	custom_textobjects = {
-		o = ai.gen_spec.treesitter({ a = { "@block.outer", "@conditional.outer", "@loop.outer" }, i = { "@block.inner", "@conditional.inner", "@loop.inner" } }),
-		f = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }),
-		c = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }),
+		-- Fall back to "no match" when textobject queries are unavailable.
+		o = safe_treesitter_textobject({ a = { "@block.outer", "@conditional.outer", "@loop.outer" }, 
+		i = { "@block.inner", "@conditional.inner", "@loop.inner" } }),
+		f = safe_treesitter_textobject({ a = "@function.outer", i = "@function.inner" }),
+		c = safe_treesitter_textobject({ a = "@class.outer", i = "@class.inner" }),
 		t = { "<([%p%w]-)%f[^<%w][^<>]->.-</%1>", "^<.->().*()</[^/]->$" },
 		d = { "%f[%d]%d+" },
 		e = { { "%u[%l%d]+%f[^%l%d]", "%f[%S][%l%d]+%f[^%l%d]", "%f[%P][%l%d]+%f[^%l%d]", "^[%l%d]+%f[^%l%d]" }, "^().*()$" },
