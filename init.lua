@@ -23,7 +23,7 @@ vim.opt.undofile = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.signcolumn = "yes"
-vim.opt.updatetime = 250
+vim.opt.updatetime = 3000
 vim.opt.timeout = true
 vim.opt.timeoutlen = 800
 vim.opt.splitright = true
@@ -216,8 +216,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		map("n", "K", vim.lsp.buf.hover, opts)
 		map("n", "<leader>cs", vim.lsp.buf.workspace_symbol, opts)
 		map("n", "<leader>vd", vim.diagnostic.open_float, opts)
-		map("n", "[d", vim.diagnostic.goto_next, opts)
-		map("n", "]d", vim.diagnostic.goto_prev, opts)
 		map("n", "<leader>gr", vim.lsp.buf.references, opts)
 		map("n", "grt", vim.lsp.buf.type_definition, opts) -- 0.12
 		map("n", "<leader>cr", vim.lsp.buf.rename, opts)
