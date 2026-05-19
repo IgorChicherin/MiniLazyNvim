@@ -88,6 +88,8 @@ vim.cmd("packadd nvim.undotree")
 require("vim._core.ui2").enable()
 
 vim.pack.add({
+	{ src = "https://github.com/albenisolmos/autochdir.nvim" },
+
 	-- LSP (configs loaded from nvim-lspconfig runtime)
 	{ src = "https://github.com/folke/tokyonight.nvim" },
 
@@ -100,6 +102,7 @@ vim.pack.add({
 	-- DAP
 	{ src = "https://github.com/mfussenegger/nvim-dap.git" },
 	{ src = "https://github.com/nvim-neotest/nvim-nio.git" },
+	{ src = "https://github.com/leoluz/nvim-dap-go" },
 	{ src = "https://github.com/igorlfs/nvim-dap-view" },
 
 	-- UI / UX
@@ -271,6 +274,7 @@ vim.api.nvim_create_autocmd("FileType", {
 -- ============================================================
 local dap = require("dap")
 local dapview = require("dap-view")
+require("dap-go").setup()
 
 dapview.setup()
 
@@ -283,14 +287,14 @@ dap.configurations.python = {
 	},
 }
 
-dap.configurations.go = {
-	{
-		type = "go",
-		request = "launch",
-		name = "Debug",
-		program = "${file}",
-	},
-}
+-- dap.configurations.go = {
+-- 	{
+-- 		type = "go",
+-- 		request = "launch",
+-- 		name = "Debug",
+-- 		program = "${file}",
+-- 	},
+-- }
 
 -- DAP keymaps
 local map = vim.keymap.set
@@ -532,3 +536,7 @@ end
 statusline.setup({ use_icons = vim.g.have_nerd_font })
 
 require("mini.misc").setup({ make_global = { "put", "put_text" } })
+
+require("autochdir").setup({
+  generic_flags = { "README.md", ".git", ".gitignore", ".dockerignore" },
+})
