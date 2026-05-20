@@ -41,26 +41,56 @@ vim.schedule(function()
       end
 
       map("<leader>cl", "<cmd>LspInfo<CR>", "LSP info")
-      map("gd", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").picker.lsp_definitions() end, "Goto definition")
+      map("gd", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").picker.lsp_definitions()
+      end, "Goto definition")
       map("gD", vim.lsp.buf.declaration, "Goto declaration")
-      map("gr", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").picker.lsp_references() end, "Goto references")
-      map("gI", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").picker.lsp_implementations() end, "Goto implementation")
-      map("gy", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").picker.lsp_type_definitions() end, "Goto type definition")
+      map("gr", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").picker.lsp_references()
+      end, "Goto references")
+      map("gI", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").picker.lsp_implementations()
+      end, "Goto implementation")
+      map("gy", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").picker.lsp_type_definitions()
+      end, "Goto type definition")
       map("K", vim.lsp.buf.hover, "Hover")
       map("gx", vim.diagnostic.open_float, "Diagnostics")
       map("gK", vim.lsp.buf.signature_help, "Signature help")
       map("<c-k>", vim.lsp.buf.signature_help, "Signature help", "i")
-      map("<leader>cs", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").picker.lsp_symbols() end, "Symbols")
-      map("<leader>cR", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").rename.rename_file() end, "Rename file")
+      map("<leader>cs", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").picker.lsp_symbols()
+      end, "Symbols")
+      map("<leader>cR", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").rename.rename_file()
+      end, "Rename file")
       map("<leader>cr", vim.lsp.buf.rename, "Rename")
       map("<leader>ca", vim.lsp.buf.code_action, "Code action", { "n", "x", "v" })
-      map("]]", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").words.jump(vim.v.count1) end, "Next reference", { "n", "x", "v" })
-      map("[[", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").words.jump(-vim.v.count1) end, "Prev reference", { "n", "x", "v" })
-      map("a-n", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").words.jump(vim.v.count1, true) end, "Next reference", { "n", "x", "v" })
-      map("a-p", function() vim.pack.add({ "https://github.com/folke/snacks.nvim" }); require("snacks").words.jump(-vim.v.count1, true) end, "Prev reference", { "n", "x", "v" })
+      map("]]", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").words.jump(vim.v.count1)
+      end, "Next reference", { "n", "x", "v" })
+      map("[[", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").words.jump(-vim.v.count1)
+      end, "Prev reference", { "n", "x", "v" })
+      map("a-n", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").words.lspjump(vim.v.count1, true)
+      end, "Next reference", { "n", "x", "v" })
+      map("a-p", function()
+        vim.pack.add({ "https://github.com/folke/snacks.nvim" })
+        require("snacks").words.jump(-vim.v.count1, true)
+      end, "Prev reference", { "n", "x", "v" })
 
       local client = vim.lsp.get_client_by_id(event.data.client_id)
-      if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight) then
+      if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight) then
         local highlight_augroup = vim.api.nvim_create_augroup("user-lsp-highlight", { clear = false })
         vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
           buffer = event.buf,
@@ -81,7 +111,7 @@ vim.schedule(function()
         })
       end
 
-      if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
+      if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
         map("<leader>th", function()
           vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }))
         end, "Toggle inlay hints")
@@ -150,8 +180,9 @@ vim.schedule(function()
           "meson.build",
           "meson_options.txt",
           "build.ninja"
-        )(fname) or require("lspconfig.util").root_pattern("compile_commands.json", "compile_flags.txt")(fname)
-          or require("lspconfig.util").find_git_ancestor(fname)
+        )(fname) or require("lspconfig.util").root_pattern("compile_commands.json", "compile_flags.txt")(fname) or require(
+          "lspconfig.util"
+        ).find_git_ancestor(fname)
       end,
       capabilities = {
         offsetEncoding = { "utf-16" },
