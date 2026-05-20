@@ -19,6 +19,9 @@ end
 
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
+-- UndoTree
+map("n", "<leader>U", require("undotree").open, { desc = "Undo tree" })
+
 -- Diagnostic keymaps
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic quickfix list" })
 
