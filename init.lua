@@ -38,7 +38,7 @@ if vim.loop.os_uname().sysname == "Windows_NT" then
   vim.opt.shellxquote = ""
 end
 
-vim.diagnostic.config({ virtual_text = false, virtual_lines = { current_line = true }, jump = { on_jump = true } })
+vim.diagnostic.config({ virtual_text = false, virtual_lines = { current_line = true } })
 
 -- [[ Basic Autocommands ]]
 vim.api.nvim_create_autocmd("TextYankPost", {
