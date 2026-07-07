@@ -38,7 +38,7 @@ if vim.loop.os_uname().sysname == "Windows_NT" then
   vim.opt.shellxquote = ""
 end
 
-vim.diagnostic.config({ virtual_text = false, virtual_lines = { current_line = true } })
+vim.diagnostic.config({ virtual_text = false, virtual_lines = { current_line = true }, jump = {} })
 
 -- [[ Basic Autocommands ]]
 vim.api.nvim_create_autocmd("TextYankPost", {
@@ -108,6 +108,7 @@ vim.pack.add({
   "https://github.com/f-person/auto-dark-mode.nvim",
   "https://github.com/tpope/vim-sleuth",
   "https://github.com/nvim-lua/plenary.nvim",
+  "https://github.com/chentoast/marks.nvim",
 })
 
 vim.cmd("packadd nvim.undotree")
@@ -236,6 +237,7 @@ require("mini.diff").setup()
 require("mini.tabline").setup()
 require("mini.icons").setup()
 require("mini.fuzzy").setup()
+require("marks").setup({ default_mappings = false })
 
 local miniclue = require("mini.clue")
 miniclue.setup({
@@ -1008,3 +1010,5 @@ map("n", "<leader>dB", function()
   hit_condition = hit_condition ~= "" and hit_condition or nil
   require("dap").toggle_breakpoint(condition, hit_condition)
 end, { desc = "Advanced [B]reakpoint" })
+
+
