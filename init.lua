@@ -91,6 +91,7 @@ vim.pack.add({
   "https://github.com/folke/flash.nvim",
   "https://github.com/tpope/vim-sleuth",
   "https://github.com/chentoast/marks.nvim",
+  "https://github.com/albenisolmos/autochdir.nvim",
 })
 
 vim.cmd("packadd nvim.undotree")
@@ -517,18 +518,8 @@ require("conform").setup({
 
 require("flash").setup({})
 
-vim.api.nvim_create_autocmd("BufEnter", {
-  desc = "cd to the project root of the current file",
-  group = vim.api.nvim_create_augroup("user-autochdir", { clear = true }),
-  callback = function(args)
-    if vim.bo[args.buf].buftype ~= "" then
-      return
-    end
-    local root = vim.fs.root(args.buf, { ".git", "README.md", ".gitignore", ".dockerignore" })
-    if root and root ~= vim.fn.getcwd() then
-      vim.fn.chdir(root)
-    end
-  end,
+require("autochdir").setup({
+  generic_flags = { "README.md", ".git", ".gitignore", ".dockerignore" },
 })
 
 -- [[ Sessions ]] one per working directory, saved on exit (replaces persistence.nvim)
