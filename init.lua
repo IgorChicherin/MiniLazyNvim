@@ -31,23 +31,25 @@ vim.opt.inccommand = "split"
 vim.opt.cursorline = true
 vim.opt.scrolloff = 10
 
-if vim.loop.os_uname().sysname == "Windows_NT" then
-  vim.opt.shell = "powershell.exe"
-  vim.opt.shellcmdflag = "-NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command"
-  vim.opt.shellquote = ""
-  vim.opt.shellxquote = ""
+-- PowerShell as 'shell' on Windows (:h shell-powershell), pwsh if installed;
+-- 'shellpipe' and UTF-8 output are needed for :grep / :make to fill the quickfix list
+if vim.fn.has("win32") == 1 then
+  local pwsh = vim.fn.executable("pwsh") == 1
+  vim.o.shell = pwsh and "pwsh" or "powershell"
+  vim.o.shellcmdflag = "-NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command "
+    .. "[Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();"
+    .. "$PSDefaultParameterValues['Out-File:Encoding']='utf8';"
+    .. (pwsh and "$PSStyle.OutputRendering='PlainText';" or "")
+  vim.o.shellpipe = "> %s 2>&1"
+  vim.o.shellquote = ""
+  vim.o.shellxquote = ""
+  vim.o.shelltemp = false
+  if pwsh then
+    vim.env.__SuppressAnsiEscapeSequences = "1"
+  end
 end
 
-vim.diagnostic.config({ virtual_text = false, virtual_lines = { current_line = true }, jump = {} })
-
--- [[ Basic Autocommands ]]
-vim.api.nvim_create_autocmd("TextYankPost", {
-  desc = "Highlight when yanking (copying) text",
-  group = vim.api.nvim_create_augroup("kickstart-highlight-yank", { clear = true }),
-  callback = function()
-    vim.highlight.on_yank()
-  end,
-})
+vim.diagnostic.config({ virtual_text = false, virtual_lines = { current_line = true } })
 
 -- [[ vim.pack - Plugin manager ]]
 vim.api.nvim_create_autocmd("PackChanged", {
@@ -65,113 +67,44 @@ vim.api.nvim_create_autocmd("PackChanged", {
 vim.pack.add({
   -- UI / Base
   "https://github.com/folke/tokyonight.nvim",
-  "https://github.com/folke/snacks.nvim",
   "https://github.com/echasnovski/mini.nvim",
-  "https://github.com/folke/persistence.nvim",
 
   -- LSP
   "https://github.com/neovim/nvim-lspconfig",
   "https://github.com/williamboman/mason.nvim",
-  "https://github.com/williamboman/mason-lspconfig.nvim",
-  "https://github.com/jay-babu/mason-nvim-dap.nvim",
-  "https://github.com/stevearc/dressing.nvim",
-  "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim",
-  "https://github.com/j-hui/fidget.nvim",
-  "https://github.com/folke/lazydev.nvim",
-
-  -- Completion
-  "https://github.com/saghen/blink.cmp",
-  "https://github.com/saghen/blink.lib",
-  "https://github.com/rafamadriz/friendly-snippets",
 
   -- Treesitter
   "https://github.com/nvim-treesitter/nvim-treesitter",
 
   -- C/C++
-  "https://github.com/p00f/clangd_extensions.nvim",
   "https://github.com/Civitasv/cmake-tools.nvim",
+  "https://github.com/nvim-lua/plenary.nvim", -- required by cmake-tools
 
   -- DAP
   { src = "https://github.com/igorlfs/nvim-dap-view", version = vim.version.range("1.*") },
   "https://github.com/mfussenegger/nvim-dap",
-  "https://github.com/nvim-neotest/nvim-nio",
   "https://github.com/mfussenegger/nvim-dap-python",
   "https://github.com/leoluz/nvim-dap-go",
-  "https://github.com/theHamsta/nvim-dap-virtual-text",
 
   -- Utils
   "https://github.com/stevearc/conform.nvim",
   "https://github.com/folke/flash.nvim",
-  "https://github.com/wintermute-cell/gitignore.nvim",
-  "https://github.com/nvim-telescope/telescope.nvim",
-  "https://github.com/albenisolmos/autochdir.nvim",
-  "https://github.com/f-person/auto-dark-mode.nvim",
   "https://github.com/tpope/vim-sleuth",
-  "https://github.com/nvim-lua/plenary.nvim",
   "https://github.com/chentoast/marks.nvim",
+  "https://github.com/albenisolmos/autochdir.nvim",
 })
 
 vim.cmd("packadd nvim.undotree")
+
+-- 'background' follows the terminal (re-queried on theme change); tokyonight picks the style from it
+require("tokyonight").setup({ style = "moon", light_style = "day" })
 vim.cmd.colorscheme("tokyonight")
 
 -- [[ Plugin setup ]]
-require("snacks").setup({
-  bigfile = { enabled = true },
-  dashboard = {
-    enabled = true,
-    preset = {
-      header = [[
-
-
-███╗   ███╗ ██╗███╗   ██╗ ██╗
-████╗ ████║███║████╗  ██║███║
-██╔████╔██║╚██║██╔██╗ ██║╚██║
-██║╚██╔╝██║ ██║██║╚██╗██║ ██║
-██║ ╚═╝ ██║ ██║██║ ╚████║ ██║
-╚═╝     ╚═╝ ╚═╝╚═╝  ╚═══╝ ╚═╝
-
-
-
-      ]],
-      keys = {
-        { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
-        { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
-        { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
-        { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
-        {
-          icon = " ",
-          key = "s",
-          desc = "Restore Session",
-          action = function()
-            require("persistence").load()
-          end,
-        },
-        {
-          icon = " ",
-          key = "c",
-          desc = "Config",
-          action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
-        },
-        { icon = " ", key = "s", desc = "Restore Session", section = "session" },
-        { icon = " ", key = "q", desc = "Quit", action = ":qa" },
-      },
-    },
-    sections = {
-      { section = "header", padding = 2 },
-      { section = "keys", gap = 1, padding = 1 },
-    },
-  },
-  indent = { enabled = true },
-  input = { enabled = true },
-  quickfile = { enabled = true },
-  scroll = { enabled = true },
-  words = { enabled = true },
-  terminal = { enabled = true },
-  lazygit = { enabled = true },
-  picker = { enabled = true },
-})
-
-require("mini.basics").setup()
+-- Basic mappings off: they replace the built-in gO (LSP symbols) and insert-mode <C-s> (signature help).
+-- Its basic autocommands (yank highlight, insert on TermOpen) stay on.
+require("mini.basics").setup({ mappings = { basic = false } })
+require("mini.bufremove").setup()
 require("mini.move").setup()
 require("mini.pairs").setup()
 require("mini.splitjoin").setup()
@@ -201,42 +134,23 @@ require("mini.surround").setup({
 
 local ai = require("mini.ai")
 ai.setup({
-  {
-    n_lines = 500,
-    custom_textobjects = {
-      o = ai.gen_spec.treesitter({
-        a = { "@block.outer", "@conditional.outer", "@loop.outer" },
-        i = { "@block.inner", "@conditional.inner", "@loop.inner" },
-      }),
-      f = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }),
-      c = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }),
-      t = { "<([%p%w]-)%f[^<%w][^<>]->.-</%1>", "^<.->().*()</[^/]->$" },
-      d = { "%f[%d]%d+" },
-      e = {
-        { "%u[%l%d]+%f[^%l%d]", "%f[%S][%l%d]+%f[^%l%d]", "%f[%P][%l%d]+%f[^%l%d]", "^[%l%d]+%f[^%l%d]" },
-        "^().*()$",
-      },
-      u = ai.gen_spec.function_call(),
-      U = ai.gen_spec.function_call({ name_pattern = "[%w_]" }),
+  n_lines = 500,
+  custom_textobjects = {
+    t = { "<([%p%w]-)%f[^<%w][^<>]->.-</%1>", "^<.->().*()</[^/]->$" },
+    d = { "%f[%d]%d+" },
+    e = {
+      { "%u[%l%d]+%f[^%l%d]", "%f[%S][%l%d]+%f[^%l%d]", "%f[%P][%l%d]+%f[^%l%d]", "^[%l%d]+%f[^%l%d]" },
+      "^().*()$",
     },
+    u = ai.gen_spec.function_call(),
+    U = ai.gen_spec.function_call({ name_pattern = "[%w_]" }),
   },
 })
 
-require("mini.pick").setup()
 require("mini.git").setup()
-require("mini.notify").setup({
-  window = {
-    config = {},
-  },
-
-  lsp_progress = {
-    enable = false,
-  },
-})
 require("mini.diff").setup()
 require("mini.tabline").setup()
 require("mini.icons").setup()
-require("mini.fuzzy").setup()
 require("marks").setup({ default_mappings = false })
 
 local miniclue = require("mini.clue")
@@ -280,13 +194,11 @@ miniclue.setup({
     { mode = "n", keys = "<Leader>w", desc = "[w]indows" },
     { mode = "n", keys = "<Leader>e", desc = "[e]xplorer" },
     { mode = "n", keys = "<Leader><Leader>", desc = "[f]ind files" },
-    { mode = "n", keys = "<Leader>sGl", desc = "Search [G]it Log" },
     { mode = "n", keys = "<Leader>sGs", desc = "Search [G]it Status" },
     { mode = "n", keys = "<Leader>u", desc = "[u]i" },
   },
 })
 
-local icons = require("mini.icons")
 local statusline = require("mini.statusline")
 
 statusline.section_location = function()
@@ -302,7 +214,7 @@ statusline.section_fileinfo = function()
   if filetype == "" then
     return ""
   end
-  filetype = icons.get("filetype", filetype) .. " " .. filetype
+  filetype = MiniIcons.get("filetype", filetype) .. " " .. filetype
   local bufname = vim.api.nvim_buf_get_name(0)
   local size = bufname ~= "" and vim.fn.getfsize(bufname) or -1
   local size_str
@@ -321,16 +233,14 @@ end
 statusline.setup({ use_icons = vim.g.have_nerd_font })
 require("mini.misc").setup({ make_global = { "put", "put_text" } })
 
-require("persistence").setup({})
-
 require("mason").setup({})
-require("fidget").setup({})
-require("dressing").setup({})
-require("lazydev").setup({
-  library = {
-    { path = "${3rd}/luv/library", words = { "vim%.uv" } },
-  },
-})
+
+-- [[ Completion ]] built-in: LSP (omnifunc) first, then up to 5 words from the current buffer, as you type
+vim.o.autocomplete = true
+vim.o.complete = "o,.^5"
+-- noinsert: the first item is preselected (not inserted), so <CR> accepts it right away
+vim.o.completeopt = "menuone,noinsert,popup,fuzzy"
+vim.o.pumheight = 10
 
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("user-lsp-attach", { clear = true }),
@@ -341,71 +251,48 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end
 
     map("<leader>cl", "<cmd>LspInfo<CR>", "LSP info")
-    map("gd", function()
-      require("snacks").picker.lsp_definitions()
-    end, "Goto definition")
+    -- references are the built-in "grr"
+    map("gd", vim.lsp.buf.definition, "Goto definition")
     map("gD", vim.lsp.buf.declaration, "Goto declaration")
-    map("gr", function()
-      require("snacks").picker.lsp_references()
-    end, "Goto references")
-    map("gI", function()
-      require("snacks").picker.lsp_implementations()
-    end, "Goto implementation")
-    map("gy", function()
-      require("snacks").picker.lsp_type_definitions()
-    end, "Goto type definition")
-    map("K", vim.lsp.buf.hover, "Hover")
-    map("gx", vim.diagnostic.open_float, "Diagnostics")
+    map("gI", vim.lsp.buf.implementation, "Goto implementation")
+    map("gy", vim.lsp.buf.type_definition, "Goto type definition")
+    map("<leader>cd", vim.diagnostic.open_float, "Line [d]iagnostics")
     map("gK", vim.lsp.buf.signature_help, "Signature help")
     map("<c-k>", vim.lsp.buf.signature_help, "Signature help", "i")
-    map("<leader>cs", function()
-      require("snacks").picker.lsp_symbols()
-    end, "Symbols")
-    map("<leader>cR", function()
-      require("snacks").rename.rename_file()
-    end, "Rename file")
+    map("<leader>cs", vim.lsp.buf.document_symbol, "Symbols")
     map("<leader>cr", vim.lsp.buf.rename, "Rename")
     map("<leader>ca", vim.lsp.buf.code_action, "Code action", { "n", "x", "v" })
-    map("]]", function()
-      require("snacks").words.jump(vim.v.count1)
-    end, "Next reference", { "n", "x", "v" })
-    map("[[", function()
-      require("snacks").words.jump(-vim.v.count1)
-    end, "Prev reference", { "n", "x", "v" })
-    map("a-n", function()
-      require("snacks").words.lspjump(vim.v.count1, true)
-    end, "Next reference", { "n", "x", "v" })
-    map("a-p", function()
-      require("snacks").words.jump(-vim.v.count1, true)
-    end, "Prev reference", { "n", "x", "v" })
 
     local client = vim.lsp.get_client_by_id(event.data.client_id)
-    if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight) then
-      local highlight_augroup = vim.api.nvim_create_augroup("user-lsp-highlight", { clear = false })
-      vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
-        buffer = event.buf,
-        group = highlight_augroup,
-        callback = vim.lsp.buf.document_highlight,
-      })
-      vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-        buffer = event.buf,
-        group = highlight_augroup,
-        callback = vim.lsp.buf.clear_references,
-      })
-      vim.api.nvim_create_autocmd("LspDetach", {
-        group = vim.api.nvim_create_augroup("user-lsp-detach", { clear = true }),
-        callback = function(event2)
-          vim.lsp.buf.clear_references()
-          vim.api.nvim_clear_autocmds({ group = "user-lsp-highlight", buffer = event2.buf })
-        end,
-      })
+    if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_completion) then
+      -- trigger characters (".", "->", ...) and snippet expansion on accept
+      vim.lsp.completion.enable(true, client.id, event.buf, { autotrigger = true })
+      map("<C-Space>", vim.lsp.completion.get, "Trigger completion", "i")
     end
-
+    if client and client.name == "clangd" then
+      map("<leader>ch", "<cmd>LspClangdSwitchSourceHeader<cr>", "Switch Source/[h]eader (C/C++)")
+    end
     if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
       map("<leader>uh", function()
         vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }))
       end, "Toggle inlay [h]ints")
     end
+  end,
+})
+
+-- Show LSP progress via the built-in progress messages (replaces fidget)
+vim.api.nvim_create_autocmd("LspProgress", {
+  group = vim.api.nvim_create_augroup("user-lsp-progress", { clear = true }),
+  callback = function(ev)
+    local value = ev.data.params.value
+    vim.api.nvim_echo({ { value.message or "done" } }, false, {
+      id = "lsp." .. ev.data.params.token,
+      kind = "progress",
+      source = "vim.lsp",
+      title = value.title,
+      status = value.kind ~= "end" and "running" or "success",
+      percent = value.percentage,
+    })
   end,
 })
 
@@ -418,37 +305,62 @@ if vim.g.have_nerd_font then
   vim.diagnostic.config({ signs = { text = diagnostic_signs } })
 end
 
-local function get_python()
-  local venv = os.getenv("VIRTUAL_ENV")
-  if venv then
-    if vim.fn.has("win32") == 1 then
-      return venv .. "\\Scripts\\python.exe"
+-- Python for basedpyright: the project's .venv/ or venv/, else the activated venv, else the system python
+local function get_python(root)
+  local win = vim.fn.has("win32") == 1
+  local bin = win and "/Scripts/python.exe" or "/bin/python"
+  local venvs = { root .. "/.venv", root .. "/venv", os.getenv("VIRTUAL_ENV") }
+  for i = 1, 3 do
+    if venvs[i] and vim.uv.fs_stat(venvs[i] .. bin) then
+      return venvs[i] .. bin
     end
-    return venv .. "/bin/python"
   end
-  return vim.fn.has("win32") == 1 and "python" or "python3"
+  return win and "python" or "python3"
 end
 
+-- Server defaults come from nvim-lspconfig; only overrides are listed here.
 local servers = {
   gopls = {},
-  ruff = {},
-  basedpyright = {
-    settings = {
-      python = {
-        pythonPath = get_python(),
+  ruff = {
+    -- a project's own ruff config wins; without one, only ruff's classic core rules
+    -- (newer ruff enables 400+ rules by default and assumes a modern Python target)
+    init_options = {
+      settings = {
+        configurationPreference = "filesystemFirst",
+        lint = { select = { "E4", "E7", "E9", "F" } },
       },
     },
-    basedpyright = {
-      analysis = {
-        autoSearchPaths = true,
-        diagnosticMode = "workspace",
-        useLibraryCodeForTypes = true,
+  },
+  basedpyright = {
+    -- per project: each root gets its own client, so its own venv
+    before_init = function(_, config)
+      config.settings.python = { pythonPath = get_python(config.root_dir or vim.fn.getcwd()) }
+    end,
+    settings = {
+      basedpyright = {
+        -- "off": no type-correctness checks; syntax errors and go-to/hover/completion still work.
+        -- Unresolved imports stay on (they also reveal a wrong venv).
+        -- A project's pyrightconfig.json or [tool.basedpyright] can turn checking back on.
+        analysis = {
+          diagnosticMode = "workspace",
+          typeCheckingMode = "off",
+          diagnosticSeverityOverrides = { reportMissingImports = "error" },
+        },
       },
     },
   },
   lua_ls = {
     settings = {
       Lua = {
+        runtime = { version = "LuaJIT" },
+        -- Neovim API and libuv types (replaces lazydev)
+        workspace = {
+          checkThirdParty = false,
+          library = {
+            vim.env.VIMRUNTIME,
+            "${3rd}/luv/library",
+          },
+        },
         completion = {
           callSnippet = "Replace",
         },
@@ -456,69 +368,47 @@ local servers = {
     },
   },
   clangd = {
-    keys = {
-      { "<leader>ch", "<cmd>ClangdSwitchSourceHeader<cr>", desc = "Switch Source/[h]eader (C/C++)" },
+    -- nested lists are tried in order of priority
+    root_markers = {
+      { "Makefile", "configure.ac", "configure.in", "config.h.in", "meson.build", "meson_options.txt", "build.ninja" },
+      { "compile_commands.json", "compile_flags.txt" },
+      ".git",
     },
-    root_dir = function(fname)
-      return require("lspconfig.util").root_pattern(
-        "Makefile",
-        "configure.ac",
-        "configure.in",
-        "config.h.in",
-        "meson.build",
-        "meson_options.txt",
-        "build.ninja"
-      )(fname) or require("lspconfig.util").root_pattern("compile_commands.json", "compile_flags.txt")(fname) or require(
-        "lspconfig.util"
-      ).find_git_ancestor(fname)
-    end,
-    capabilities = {
-      offsetEncoding = { "utf-16" },
-    },
-    cmd = {
-      "clangd",
-      "--background-index",
-      "--clang-tidy",
-      "--header-insertion=iwyu",
-      "--completion-style=detailed",
-      "--function-arg-placeholders",
-      "--fallback-style=llvm",
-    },
-    init_options = {
-      usePlaceholders = true,
-      completeUnimported = true,
-      clangdFileStatus = true,
-    },
+    -- background index, clang-tidy, iwyu header insertion and arg placeholders are clangd defaults
+    cmd = { "clangd", "--completion-style=detailed" },
   },
 }
 
-local ensure_installed = vim.tbl_keys(servers)
-vim.list_extend(ensure_installed, { "stylua" })
-require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
-require("mason-nvim-dap").setup({ ensure_installed = { "codelldb" }, automatic_setup = true })
+for name, config in pairs(servers) do
+  vim.lsp.config(name, config)
+end
+vim.lsp.enable(vim.tbl_keys(servers))
 
-require("mason-lspconfig").setup({
-  handlers = {
-    function(server_name)
-      local server = servers[server_name] or {}
-      require("lspconfig")[server_name].setup(server)
-    end,
-  },
-})
+-- Mason package names (differ from LSP config names for some servers)
+local mason_packages = {
+  "gopls",
+  "ruff",
+  "basedpyright",
+  "lua-language-server",
+  "clangd",
+  "stylua",
+  "codelldb",
+  "debugpy",
+  "delve",
+}
+local registry = require("mason-registry")
+registry.refresh(function()
+  for _, name in ipairs(mason_packages) do
+    local ok, pkg = pcall(registry.get_package, name)
+    if ok and not pkg:is_installed() then
+      pkg:install()
+    end
+  end
+end)
 
-require("blink.cmp").build():pwait()
-require("blink.cmp").setup({
-  keymap = { preset = "enter" },
-  appearance = { nerd_font_variant = "mono" },
-  completion = { documentation = { auto_show = false } },
-  signature = { enabled = true },
-  sources = { default = { "lsp", "path", "snippets", "buffer" } },
-  fuzzy = { implementation = "prefer_rust_with_warning" },
-})
-
-local languages = { "go", "python", "cpp", "lua", "json", "yaml" }
-for _, lang in ipairs(languages) do
-  vim.treesitter.language.add(lang)
+-- Installing parsers needs the tree-sitter CLI; already installed parsers are skipped
+if vim.fn.executable("tree-sitter") == 1 then
+  require("nvim-treesitter").install({ "c", "cpp", "go", "python", "lua", "json", "yaml" })
 end
 
 vim.api.nvim_create_autocmd("FileType", {
@@ -531,29 +421,6 @@ vim.api.nvim_create_autocmd("FileType", {
     pcall(vim.treesitter.language.add, lang)
     pcall(vim.treesitter.start, args.buf, lang)
   end,
-})
-
-require("clangd_extensions").setup({
-  inlay_hints = { inline = false },
-  ast = {
-    role_icons = {
-      type = "",
-      declaration = "",
-      expression = "",
-      specifier = "",
-      statement = "",
-      ["template argument"] = "",
-    },
-    kind_icons = {
-      Compound = "",
-      Recovery = "",
-      TranslationUnit = "",
-      PackExpansion = "",
-      TemplateTypeParm = "",
-      TemplateTemplateParm = "",
-      TemplateParamObject = "",
-    },
-  },
 })
 
 require("cmake-tools").setup({})
@@ -577,17 +444,19 @@ require("dap-view").setup({
 local dap = require("dap")
 local dap_go = require("dap-go")
 local dap_python = require("dap-python")
-require("nvim-dap-virtual-text").setup({ commented = true })
-dap_python.setup("python3")
 dap_go.setup()
 
 local install_root_dir = vim.fn.stdpath("data") .. "/mason"
 local extension_path = install_root_dir .. "/packages/codelldb/extension/"
 local codelldb_path = extension_path .. "adapter/codelldb"
+local debugpy_python = install_root_dir .. "/packages/debugpy/venv/bin/python"
 
-if vim.loop.os_uname().sysname == "Windows_NT" then
+if vim.fn.has("win32") == 1 then
   codelldb_path = codelldb_path .. ".exe"
+  debugpy_python = install_root_dir .. "/packages/debugpy/venv/Scripts/python.exe"
 end
+
+dap_python.setup(debugpy_python)
 
 if not dap.adapters.codelldb then
   dap.adapters.codelldb = {
@@ -611,7 +480,6 @@ for _, lang in ipairs({ "c", "cpp" }) do
         return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
       end,
       cwd = "${workspaceFolder}",
-      port = 13000,
     },
     {
       type = "codelldb",
@@ -621,7 +489,6 @@ for _, lang in ipairs({ "c", "cpp" }) do
         return require("dap.utils").pick_process()
       end,
       cwd = "${workspaceFolder}",
-      port = 13000,
     },
   }
 end
@@ -650,30 +517,136 @@ require("conform").setup({
 })
 
 require("flash").setup({})
-require("gitignore")
+
 require("autochdir").setup({
   generic_flags = { "README.md", ".git", ".gitignore", ".dockerignore" },
 })
 
-require("auto-dark-mode").setup({
-  update_interval = 1000,
-  set_dark_mode = function()
-    vim.api.nvim_set_option_value("background", "dark", {})
-    require("tokyonight").load({ style = "moon" })
+-- [[ Sessions ]] one per working directory, saved on exit (replaces persistence.nvim)
+vim.opt.sessionoptions = { "buffers", "curdir", "folds", "help", "tabpages", "winsize" }
+local session_dir = vim.fn.stdpath("state") .. "/sessions/"
+vim.fn.mkdir(session_dir, "p")
+
+local function session_file()
+  return session_dir .. vim.fn.getcwd():gsub("[\\/:]", "%%") .. ".vim"
+end
+
+local function load_session(file)
+  if file and vim.uv.fs_stat(file) then
+    vim.cmd.source(vim.fn.fnameescape(file))
+  end
+end
+
+local function list_sessions()
+  local files = vim.fn.glob(session_dir .. "*.vim", false, true)
+  table.sort(files, function(a, b)
+    return vim.fn.getftime(a) > vim.fn.getftime(b)
+  end)
+  return files
+end
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+  desc = "Save the session for the current directory",
+  group = vim.api.nvim_create_augroup("user-session", { clear = true }),
+  callback = function()
+    local has_file = vim.iter(vim.fn.getbufinfo({ buflisted = 1 })):any(function(buf)
+      return buf.name ~= "" and vim.bo[buf.bufnr].buftype == ""
+    end)
+    if has_file then
+      vim.cmd.mksession({ vim.fn.fnameescape(session_file()), bang = true })
+    end
   end,
-  set_light_mode = function()
-    vim.api.nvim_set_option_value("background", "light", {})
-    require("tokyonight").load({ style = "day" })
-  end,
-  fallback = "light",
 })
+
+-- [[ Find / grep ]] built-in :find, :buffer and :grep (replaces the snacks picker)
+-- fd is installed as "fdfind" on Debian/Ubuntu
+local fd = vim.fn.executable("fd") == 1 and "fd" or vim.fn.executable("fdfind") == 1 and "fdfind" or nil
+if fd then
+  local files
+  vim.api.nvim_create_autocmd("CmdlineEnter", {
+    desc = "Refresh the :find file list once per command line",
+    group = vim.api.nvim_create_augroup("user-find-files", { clear = true }),
+    callback = function()
+      files = nil
+    end,
+  })
+  function _G.FindFiles(arg)
+    files = files or vim.fn.systemlist({ fd, "--type", "f", "--hidden", "--exclude", ".git" })
+    return arg == "" and files or vim.fn.matchfuzzy(files, arg)
+  end
+  vim.o.findfunc = "v:lua.FindFiles"
+else
+  -- without fd, :find searches subdirectories through 'path'
+  vim.opt.path:append("**")
+end
+
+if vim.fn.executable("rg") == 1 then
+  vim.o.grepprg = "rg --vimgrep --smart-case --hidden --glob=!.git"
+end
+
+vim.api.nvim_create_autocmd("QuickFixCmdPost", {
+  desc = "Open the quickfix list after :grep",
+  group = vim.api.nvim_create_augroup("user-grep", { clear = true }),
+  pattern = "grep",
+  command = "cwindow",
+})
+
+-- Completion popup as you type :find, :buffer, :help and :colorscheme arguments
+vim.o.wildmode = "noselect:lastused,full"
+vim.o.wildoptions = "pum,fuzzy"
+-- (and command names too, when the command line was opened with <leader>sC)
+local live_complete =
+  { find = true, fin = true, b = true, buffer = true, h = true, help = true, colo = true, colorscheme = true }
+local complete_commands = false
+local cmdline_group = vim.api.nvim_create_augroup("user-cmdline-complete", { clear = true })
+vim.api.nvim_create_autocmd("CmdlineChanged", {
+  group = cmdline_group,
+  pattern = ":",
+  callback = function()
+    if complete_commands or live_complete[vim.fn.getcmdline():match("^(%a+)%s")] then
+      vim.fn.wildtrigger()
+    end
+  end,
+})
+vim.api.nvim_create_autocmd("CmdlineLeave", {
+  group = cmdline_group,
+  callback = function()
+    complete_commands = false
+  end,
+})
+local function search_commands()
+  complete_commands = true
+  vim.api.nvim_feedkeys(":", "n", false)
+end
 
 -- [[ Keymaps ]]
 local map = vim.keymap.set
 
-local function snacks_picker()
-  return require("snacks")
-end
+-- Enter accepts the selected completion item, otherwise lets mini.pairs handle it
+map("i", "<CR>", function()
+  if vim.fn.complete_info({ "selected" }).selected ~= -1 then
+    return "\25" -- <C-y>
+  end
+  return MiniPairs.cr()
+end, { expr = true, replace_keycodes = false, desc = "Accept completion / newline" })
+
+-- Tab/S-Tab move through the completion menu, otherwise jump between snippet fields
+map("i", "<Tab>", function()
+  if vim.fn.pumvisible() == 1 then
+    return "<C-n>"
+  elseif vim.snippet.active({ direction = 1 }) then
+    return "<Cmd>lua vim.snippet.jump(1)<CR>"
+  end
+  return "<Tab>"
+end, { expr = true, desc = "Next completion / snippet field" })
+map("i", "<S-Tab>", function()
+  if vim.fn.pumvisible() == 1 then
+    return "<C-p>"
+  elseif vim.snippet.active({ direction = -1 }) then
+    return "<Cmd>lua vim.snippet.jump(-1)<CR>"
+  end
+  return "<S-Tab>"
+end, { expr = true, desc = "Prev completion / snippet field" })
 
 map("n", "<Esc>", function()
   for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -681,10 +654,15 @@ map("n", "<Esc>", function()
       vim.api.nvim_win_close(win, false)
     end
   end
+  vim.cmd.nohlsearch()
 end)
-map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
 map("n", "<leader>U", require("undotree").open, { desc = "[U]ndo tree" })
+
+local marks = require("marks")
+map("n", "dm", marks.delete, { desc = "Delete mark" })
+map("n", "dm-", marks.delete_line, { desc = "Delete marks on line" })
+map("n", "dm<space>", marks.delete_buf, { desc = "Delete marks in buffer" })
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic quickfi[x] list" })
 map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
@@ -698,245 +676,162 @@ map("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
 map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Width" })
 map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
 
-map("n", "<leader>e", function()
-  snacks_picker().explorer()
-end, { desc = "Open file [e]xplorer" })
+-- Run a TUI program in its own tab; the tab closes when the program exits
+local function tab_terminal(cmd)
+  vim.cmd.tabnew()
+  local buf = vim.api.nvim_get_current_buf()
+  vim.bo[buf].buflisted = false
+  vim.fn.jobstart(cmd, {
+    term = true,
+    on_exit = function()
+      vim.schedule(function()
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end)
+    end,
+  })
+  vim.cmd.startinsert()
+end
 
-map("n", "<leader><leader>", function()
-  snacks_picker().picker.files()
-end, { desc = "Find file" })
+map("n", "<leader>e", "<cmd>Explore<cr>", { desc = "Open file [e]xplorer" })
+
+map("n", "<leader><leader>", ":find ", { desc = "Find file" })
 
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "[q]uit All" })
 
-map("n", "<leader>sf", function()
-  snacks_picker().picker.files()
-end, { desc = "Search [f]ile" })
-map("n", "<leader>sp", function()
-  snacks_picker().picker.projects()
-end, { desc = "Search [p]roject" })
-map("n", "<leader>sb", function()
-  snacks_picker().picker.buffers()
-end, { desc = "Search [b]uffer" })
-map("n", "<leader>sg", function()
-  snacks_picker().picker.grep()
-end, { desc = "Search [g]rep" })
+map("n", "<leader>sf", ":find ", { desc = "Search [f]ile" })
+map("n", "<leader>sb", ":buffer ", { desc = "Search [b]uffer" })
+map("n", "<leader>sg", ":silent grep! ", { desc = "Search [g]rep" })
 map("n", "<leader>sc", function()
-  snacks_picker().picker.files({ cwd = vim.fn.stdpath("config") })
+  vim.cmd.edit(vim.fn.stdpath("config") .. "/init.lua")
 end, { desc = "Search [c]onfig file" })
-map("n", "<leader>sh", function()
-  snacks_picker().picker.command_history()
-end, { desc = "Search command [h]istory" })
-map("n", "<leader>sC", function()
-  snacks_picker().picker.commands()
-end, { desc = "Search [C]ommands" })
-map("n", "<leader>sH", function()
-  snacks_picker().picker.help()
-end, { desc = "Search [H]elp" })
-map("n", "<leader>sk", function()
-  snacks_picker().picker.keymaps()
-end, { desc = "Search [k]eymaps" })
-map("n", "<leader>sm", function()
-  snacks_picker().picker.marks()
-end, { desc = "Search [m]arks" })
-map("n", "<leader>sq", function()
-  snacks_picker().picker.qflist()
-end, { desc = "Search [q]uickfix" })
-map("n", "<leader>sr", function()
-  snacks_picker().picker.registers()
-end, { desc = "Search [r]egisters" })
-map("n", "<leader>uC", function()
-  snacks_picker().picker.colorschemes()
-end, { desc = "UI [C]olorschemes" })
-map("n", "<leader>sGl", function()
-  snacks_picker().picker.git_log()
-end, { desc = "Search Git [l]og" })
-map("n", "<leader>sGs", function()
-  snacks_picker().picker.git_status()
-end, { desc = "Search Git [s]tatus" })
+map("n", "<leader>sh", "q:", { desc = "Search command [h]istory" })
+map("n", "<leader>sC", search_commands, { desc = "Search [C]ommands" })
+map("n", "<leader>sH", ":help ", { desc = "Search [H]elp" })
+map("n", "<leader>sk", "<cmd>map<cr>", { desc = "Search [k]eymaps" })
+map("n", "<leader>sm", "<cmd>marks<cr>", { desc = "Search [m]arks" })
+map("n", "<leader>sq", "<cmd>copen<cr>", { desc = "Search [q]uickfix" })
+map("n", "<leader>sr", "<cmd>registers<cr>", { desc = "Search [r]egisters" })
+map("n", "<leader>uC", ":colorscheme ", { desc = "UI [C]olorschemes" })
+map("n", "<leader>sGs", "<cmd>Git status<cr>", { desc = "Search Git [s]tatus" })
 
 map("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
 map("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next Buffer" })
-map("n", "[b", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
-map("n", "]b", "<cmd>bnext<cr>", { desc = "Next Buffer" })
 map("n", "<leader>bb", "<cmd>e #<cr>", { desc = "Switch to Other [b]uffer" })
-map("n", "<leader>`", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
 map("n", "<leader>bd", function()
-  snacks_picker().bufdelete()
+  MiniBufremove.delete()
 end, { desc = "[d]elete Buffer" })
 map("n", "<leader>bo", function()
-  snacks_picker().bufdelete.other()
+  local current = vim.api.nvim_get_current_buf()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if buf ~= current and vim.bo[buf].buflisted then
+      MiniBufremove.delete(buf)
+    end
+  end
 end, { desc = "Delete [o]ther Buffers" })
 map("n", "<leader>bD", "<cmd>:bd<cr>", { desc = "[D]elete Buffer and Window" })
 
-map("n", "<c-/>", function()
-  snacks_picker().terminal(nil, { cwd = vim.uv.cwd() })
-end, { desc = "Terminal (Root Dir)" })
-map("n", "<c-_>", function()
-  snacks_picker().terminal(nil, { cwd = vim.uv.cwd() })
-end, { desc = "which_key_ignore" })
-map("t", "<C-/>", "<cmd>close<cr>", { desc = "Hide Terminal" })
-map("t", "<c-_>", "<cmd>close<cr>", { desc = "which_key_ignore" })
+-- One terminal in a bottom split, hidden and shown again with the same key
+local term_buf
+local function toggle_terminal()
+  if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
+    local win = vim.fn.bufwinid(term_buf)
+    if win ~= -1 then
+      vim.api.nvim_win_close(win, false)
+      return
+    end
+    vim.cmd("botright 15split")
+    vim.api.nvim_win_set_buf(0, term_buf)
+    vim.cmd.startinsert()
+  else
+    vim.cmd("botright 15split | terminal")
+    term_buf = vim.api.nvim_get_current_buf()
+    -- keep it out of the tabline and :bnext/:bprevious
+    vim.bo[term_buf].buflisted = false
+  end
+end
+map({ "n", "t" }, "<c-/>", toggle_terminal, { desc = "Toggle Terminal" })
+map({ "n", "t" }, "<c-_>", toggle_terminal, { desc = "Toggle Terminal" })
 
 map("n", "<leader>cf", function()
   require("conform").format({ async = true, lsp_format = "fallback" })
 end, { desc = "[f]ormat buffer" })
 
 map("n", "<leader>qs", function()
-  require("persistence").load()
+  load_session(session_file())
 end, { desc = "Load [s]ession for current dir" })
 map("n", "<leader>qS", function()
-  require("persistence").select()
+  vim.ui.select(list_sessions(), {
+    prompt = "Session",
+    format_item = function(file)
+      return (vim.fn.fnamemodify(file, ":t:r"):gsub("%%", "/"))
+    end,
+  }, load_session)
 end, { desc = "Find [S]ession" })
 map("n", "<leader>ql", function()
-  require("persistence").load({ last = true })
+  load_session(list_sessions()[1])
 end, { desc = "Load [l]ast session" })
 
 map("n", "[e", function()
-  vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.ERROR, wrap = true })
+  vim.diagnostic.jump({ count = -vim.v.count1, severity = vim.diagnostic.severity.ERROR })
 end, { desc = "Go to previous ERROR" })
 map("n", "]e", function()
-  vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.ERROR, wrap = true })
+  vim.diagnostic.jump({ count = vim.v.count1, severity = vim.diagnostic.severity.ERROR })
 end, { desc = "Go to next ERROR" })
 map("n", "[w", function()
-  vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.WARNING, wrap = true })
+  vim.diagnostic.jump({ count = -vim.v.count1, severity = vim.diagnostic.severity.WARN })
 end, { desc = "Go to previous WARNING" })
 map("n", "]w", function()
-  vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.WARNING, wrap = true })
+  vim.diagnostic.jump({ count = vim.v.count1, severity = vim.diagnostic.severity.WARN })
 end, { desc = "Go to next WARNING" })
 
-vim.schedule(function()
-  local toggle = snacks_picker().toggle
-  toggle.option("spell", { name = "[s]pelling" }):map("<leader>us")
-  toggle.option("wrap", { name = "[w]rap" }):map("<leader>uw")
-  toggle.option("relativenumber", { name = "Relative [L]ine number" }):map("<leader>uL")
-  toggle.diagnostics({ name = "[d]iagnostics" }):map("<leader>ud")
-  toggle.line_number({ name = "[l]ine number" }):map("<leader>ul")
-  toggle
-    .option("conceallevel", { off = 0, on = vim.o.conceallevel > 0 and vim.o.conceallevel or 2, name = "[c]onceal Level" })
-    :map("<leader>uc")
-  toggle
-    .option("showtabline", { off = 0, on = vim.o.showtabline > 0 and vim.o.showtabline or 2, name = "[t]abline" })
-    :map("<leader>ut")
-  toggle.treesitter({ name = "[T]reesitter Highlight" }):map("<leader>uT")
-  toggle.option("background", { off = "light", on = "dark", name = "Dark [b]ackground" }):map("<leader>ub")
-  toggle
-    .new({
-      id = "dim",
-      name = "[D]im",
-      get = function()
-        return Snacks.dim.enabled
-      end,
-      set = function(state)
-        if state then
-          Snacks.dim.enable()
-        else
-          Snacks.dim.disable()
-        end
-      end,
-    })
-    :map("<leader>uD")
-  toggle
-    .new({
-      id = "animate",
-      name = "[a]nimate",
-      get = function()
-        return vim.g.snacks_animate ~= false
-      end,
-      set = function(state)
-        vim.g.snacks_animate = state
-      end,
-    })
-    :map("<leader>ua")
-  toggle
-    .new({
-      id = "indent",
-      name = "[i]ndent",
-      get = function()
-        return Snacks.indent.enabled
-      end,
-      set = function(state)
-        if state then
-          Snacks.indent.enable()
-        else
-          Snacks.indent.disable()
-        end
-      end,
-    })
-    :map("<leader>ui")
-  toggle
-    .new({
-      id = "scroll",
-      name = "[S]croll",
-      get = function()
-        return Snacks.scroll.enabled
-      end,
-      set = function(state)
-        if state then
-          Snacks.scroll.enable()
-        else
-          Snacks.scroll.disable()
-        end
-      end,
-    })
-    :map("<leader>uS")
-  toggle.profiler():map("<leader>dpp")
-  toggle.profiler_highlights():map("<leader>dph")
-  toggle
-    .new({
-      id = "format_on_save",
-      name = "[f]ormat on Save (global)",
-      get = function()
-        return not vim.g.disable_autoformat
-      end,
-      set = function(state)
-        vim.g.disable_autoformat = not state
-      end,
-    })
-    :map("<leader>uf")
-  toggle
-    .new({
-      id = "format_on_save_buffer",
-      name = "[F]ormat on Save (buffer)",
-      get = function()
-        return not vim.b.disable_autoformat
-      end,
-      set = function(state)
-        vim.b.disable_autoformat = not state
-      end,
-    })
-    :map("<leader>uF")
-  toggle
-    .new({
-      id = "zoom",
-      name = "[Z]oom",
-      get = function()
-        return Snacks.zen.win and Snacks.zen.win:valid() or false
-      end,
-      set = function(state)
-        if state then
-          Snacks.zen.zoom()
-        elseif Snacks.zen.win then
-          Snacks.zen.win:close()
-        end
-      end,
-    })
-    :map("<leader>uZ")
-  toggle
-    .new({
-      id = "zen",
-      name = "[z]en",
-      get = function()
-        return Snacks.zen.win and Snacks.zen.win:valid() or false
-      end,
-      set = function(state)
-        if state then
-          Snacks.zen()
-        elseif Snacks.zen.win then
-          Snacks.zen.win:close()
-        end
-      end,
-    })
-    :map("<leader>uz")
+local function toggle(lhs, name, get, set)
+  map("n", lhs, function()
+    set(not get())
+    vim.notify(name:gsub("[%[%]]", "") .. (get() and " on" or " off"))
+  end, { desc = "Toggle " .. name })
+end
+
+local function toggle_option(lhs, option, name, off, on)
+  if off == nil then
+    off, on = false, true
+  end
+  toggle(lhs, name, function()
+    return vim.o[option] ~= off
+  end, function(state)
+    vim.o[option] = state and on or off
+  end)
+end
+
+toggle_option("<leader>us", "spell", "[s]pelling")
+toggle_option("<leader>uw", "wrap", "[w]rap")
+toggle_option("<leader>uL", "relativenumber", "Relative [L]ine number")
+toggle_option("<leader>uc", "conceallevel", "[c]onceal Level", 0, 2)
+toggle_option("<leader>ut", "showtabline", "[t]abline", 0, 2)
+toggle_option("<leader>ub", "background", "Dark [b]ackground", "light", "dark")
+toggle("<leader>ud", "[d]iagnostics", vim.diagnostic.is_enabled, vim.diagnostic.enable)
+toggle("<leader>ul", "[l]ine number", function()
+  return vim.o.number or vim.o.relativenumber
+end, function(state)
+  vim.o.number, vim.o.relativenumber = state, state
+end)
+toggle("<leader>uT", "[T]reesitter Highlight", function()
+  return vim.b.ts_highlight == true
+end, function(state)
+  if state then
+    vim.treesitter.start()
+  else
+    vim.treesitter.stop()
+  end
+end)
+toggle("<leader>uf", "[f]ormat on Save (global)", function()
+  return not vim.g.disable_autoformat
+end, function(state)
+  vim.g.disable_autoformat = not state
+end)
+toggle("<leader>uF", "[F]ormat on Save (buffer)", function()
+  return not vim.b.disable_autoformat
+end, function(state)
+  vim.b.disable_autoformat = not state
 end)
 
 map("n", "<leader>w", "<c-w>", { desc = "Windows", remap = true })
@@ -946,21 +841,13 @@ map("n", "<leader>wd", "<C-W>c", { desc = "[d]elete Window", remap = true })
 
 if vim.fn.executable("lazygit") == 1 then
   map("n", "<leader>gg", function()
-    snacks_picker().lazygit({ cwd = vim.uv.cwd() })
-  end, { desc = "Lazy[g]it (Root Dir)" })
-  map("n", "<leader>gG", function()
-    snacks_picker().lazygit()
-  end, { desc = "Lazy[G]it (cwd)" })
-  map("n", "<leader>gf", function()
-    snacks_picker().picker.git_log_file()
-  end, { desc = "Git Current [f]ile History" })
-  map("n", "<leader>gl", function()
-    snacks_picker().picker.git_log({ cwd = vim.uv.cwd() })
-  end, { desc = "Git [l]og" })
-  map("n", "<leader>gL", function()
-    snacks_picker().picker.git_log()
-  end, { desc = "Git [L]og (cwd)" })
+    tab_terminal({ "lazygit" })
+  end, { desc = "Lazy[g]it" })
 end
+map("n", "<leader>gf", function()
+  vim.cmd("Git log --oneline -- " .. vim.fn.fnameescape(vim.fn.expand("%")))
+end, { desc = "Git Current [f]ile History" })
+map("n", "<leader>gl", "<cmd>Git log --oneline<cr>", { desc = "Git [l]og" })
 
 local flash = require("flash")
 map({ "n", "x", "o" }, "s", function()
@@ -1010,5 +897,3 @@ map("n", "<leader>dB", function()
   hit_condition = hit_condition ~= "" and hit_condition or nil
   require("dap").toggle_breakpoint(condition, hit_condition)
 end, { desc = "Advanced [B]reakpoint" })
-
-
