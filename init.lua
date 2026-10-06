@@ -198,7 +198,6 @@ miniclue.setup({
   },
 })
 
-local icons = require("mini.icons")
 local statusline = require("mini.statusline")
 
 statusline.section_location = function()
@@ -214,7 +213,7 @@ statusline.section_fileinfo = function()
   if filetype == "" then
     return ""
   end
-  filetype = icons.get("filetype", filetype) .. " " .. filetype
+  filetype = MiniIcons.get("filetype", filetype) .. " " .. filetype
   local bufname = vim.api.nvim_buf_get_name(0)
   local size = bufname ~= "" and vim.fn.getfsize(bufname) or -1
   local size_str
@@ -305,30 +304,46 @@ if vim.g.have_nerd_font then
   vim.diagnostic.config({ signs = { text = diagnostic_signs } })
 end
 
-local function get_python()
-  local venv = os.getenv("VIRTUAL_ENV")
-  if venv then
-    if vim.fn.has("win32") == 1 then
-      return venv .. "\\Scripts\\python.exe"
+-- Python for basedpyright: the project's .venv/ or venv/, else the activated venv, else the system python
+local function get_python(root)
+  local win = vim.fn.has("win32") == 1
+  local bin = win and "/Scripts/python.exe" or "/bin/python"
+  local venvs = { root .. "/.venv", root .. "/venv", os.getenv("VIRTUAL_ENV") }
+  for i = 1, 3 do
+    if venvs[i] and vim.uv.fs_stat(venvs[i] .. bin) then
+      return venvs[i] .. bin
     end
-    return venv .. "/bin/python"
   end
-  return vim.fn.has("win32") == 1 and "python" or "python3"
+  return win and "python" or "python3"
 end
 
+-- Server defaults come from nvim-lspconfig; only overrides are listed here.
 local servers = {
   gopls = {},
-  ruff = {},
-  basedpyright = {
-    settings = {
-      python = {
-        pythonPath = get_python(),
+  ruff = {
+    -- a project's own ruff config wins; without one, only ruff's classic core rules
+    -- (newer ruff enables 400+ rules by default and assumes a modern Python target)
+    init_options = {
+      settings = {
+        configurationPreference = "filesystemFirst",
+        lint = { select = { "E4", "E7", "E9", "F" } },
       },
+    },
+  },
+  basedpyright = {
+    -- per project: each root gets its own client, so its own venv
+    before_init = function(_, config)
+      config.settings.python = { pythonPath = get_python(config.root_dir or vim.fn.getcwd()) }
+    end,
+    settings = {
       basedpyright = {
+        -- "off": no type-correctness checks; syntax errors and go-to/hover/completion still work.
+        -- Unresolved imports stay on (they also reveal a wrong venv).
+        -- A project's pyrightconfig.json or [tool.basedpyright] can turn checking back on.
         analysis = {
-          autoSearchPaths = true,
           diagnosticMode = "workspace",
-          useLibraryCodeForTypes = true,
+          typeCheckingMode = "off",
+          diagnosticSeverityOverrides = { reportMissingImports = "error" },
         },
       },
     },
@@ -358,23 +373,8 @@ local servers = {
       { "compile_commands.json", "compile_flags.txt" },
       ".git",
     },
-    capabilities = {
-      offsetEncoding = { "utf-16" },
-    },
-    cmd = {
-      "clangd",
-      "--background-index",
-      "--clang-tidy",
-      "--header-insertion=iwyu",
-      "--completion-style=detailed",
-      "--function-arg-placeholders",
-      "--fallback-style=llvm",
-    },
-    init_options = {
-      usePlaceholders = true,
-      completeUnimported = true,
-      clangdFileStatus = true,
-    },
+    -- background index, clang-tidy, iwyu header insertion and arg placeholders are clangd defaults
+    cmd = { "clangd", "--completion-style=detailed" },
   },
 }
 
