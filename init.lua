@@ -673,11 +673,11 @@ local function toggle_terminal()
       vim.api.nvim_win_close(win, false)
       return
     end
-    vim.cmd("botright 15split")
+    vim.cmd("botright 23split")
     vim.api.nvim_win_set_buf(0, term_buf)
     vim.cmd.startinsert()
   else
-    vim.cmd("botright 15split | terminal")
+    vim.cmd("botright 23split | terminal")
     term_buf = vim.api.nvim_get_current_buf()
     -- keep it out of the tabline and :bnext/:bprevious
     vim.bo[term_buf].buflisted = false
