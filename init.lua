@@ -82,6 +82,7 @@ vim.pack.add({
 
   -- Utils
   "https://github.com/stevearc/conform.nvim",
+  "https://github.com/f-person/auto-dark-mode.nvim",
   "https://github.com/folke/flash.nvim",
   "https://github.com/tpope/vim-sleuth",
   "https://github.com/chentoast/marks.nvim",
@@ -823,3 +824,17 @@ map("n", "<leader>dd", function()
   end
   tab_terminal(cmd)
 end, { desc = "[d]ebug current file with tdb" })
+
+-- [[ Auto dark mode ]]
+require("auto-dark-mode").setup({
+  update_interval = 1000,
+  set_dark_mode = function()
+    vim.api.nvim_set_option_value("background", "dark", {})
+    require("tokyonight").load({ style = "moon" })
+  end,
+  set_light_mode = function()
+    vim.api.nvim_set_option_value("background", "light", {})
+    require("tokyonight").load({ style = "day" })
+  end,
+  fallback = "light",
+})
