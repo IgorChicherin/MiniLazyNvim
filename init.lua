@@ -80,12 +80,6 @@ vim.pack.add({
   "https://github.com/Civitasv/cmake-tools.nvim",
   "https://github.com/nvim-lua/plenary.nvim", -- required by cmake-tools
 
-  -- DAP
-  { src = "https://github.com/igorlfs/nvim-dap-view", version = vim.version.range("1.*") },
-  "https://github.com/mfussenegger/nvim-dap",
-  "https://github.com/mfussenegger/nvim-dap-python",
-  "https://github.com/leoluz/nvim-dap-go",
-
   -- Utils
   "https://github.com/stevearc/conform.nvim",
   "https://github.com/folke/flash.nvim",
@@ -392,9 +386,6 @@ local mason_packages = {
   "lua-language-server",
   "clangd",
   "stylua",
-  "codelldb",
-  "debugpy",
-  "delve",
 }
 local registry = require("mason-registry")
 registry.refresh(function()
@@ -424,74 +415,6 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 
 require("cmake-tools").setup({})
-
-require("dap-view").setup({
-  winbar = {
-    sections = { "console", "watches", "scopes", "exceptions", "breakpoints", "threads", "repl" },
-    show = true,
-    default_section = "console",
-    show_keymap_hints = true,
-  },
-  windows = {
-    size = 15,
-    position = "below",
-    terminal = { hide = true },
-  },
-  virtual_text = { enabled = true },
-  auto_toggle = true,
-})
-
-local dap = require("dap")
-local dap_go = require("dap-go")
-local dap_python = require("dap-python")
-dap_go.setup()
-
-local install_root_dir = vim.fn.stdpath("data") .. "/mason"
-local extension_path = install_root_dir .. "/packages/codelldb/extension/"
-local codelldb_path = extension_path .. "adapter/codelldb"
-local debugpy_python = install_root_dir .. "/packages/debugpy/venv/bin/python"
-
-if vim.fn.has("win32") == 1 then
-  codelldb_path = codelldb_path .. ".exe"
-  debugpy_python = install_root_dir .. "/packages/debugpy/venv/Scripts/python.exe"
-end
-
-dap_python.setup(debugpy_python)
-
-if not dap.adapters.codelldb then
-  dap.adapters.codelldb = {
-    type = "server",
-    host = "127.0.0.1",
-    port = "${port}",
-    executable = {
-      command = codelldb_path,
-      args = { "--port", "${port}" },
-    },
-  }
-end
-
-for _, lang in ipairs({ "c", "cpp" }) do
-  dap.configurations[lang] = {
-    {
-      type = "codelldb",
-      request = "launch",
-      name = "Launch file",
-      program = function()
-        return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
-      end,
-      cwd = "${workspaceFolder}",
-    },
-    {
-      type = "codelldb",
-      request = "attach",
-      name = "Attach to process",
-      pid = function()
-        return require("dap.utils").pick_process()
-      end,
-      cwd = "${workspaceFolder}",
-    },
-  }
-end
 
 require("conform").setup({
   notify_on_error = false,
@@ -676,14 +599,17 @@ map("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
 map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Width" })
 map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
 
--- Run a TUI program in its own tab; the tab closes when the program exits
-local function tab_terminal(cmd)
+-- Run a program in its own tab; the tab closes when the program exits (unless keep_open)
+local function tab_terminal(cmd, keep_open)
   vim.cmd.tabnew()
   local buf = vim.api.nvim_get_current_buf()
   vim.bo[buf].buflisted = false
   vim.fn.jobstart(cmd, {
     term = true,
     on_exit = function()
+      if keep_open then
+        return
+      end
       vim.schedule(function()
         pcall(vim.api.nvim_buf_delete, buf, { force = true })
       end)
@@ -691,6 +617,14 @@ local function tab_terminal(cmd)
   })
   vim.cmd.startinsert()
 end
+
+-- Any shell command in its own tab; the tab stays open after exit so the output can be read
+map("n", "<leader>t", function()
+  local cmd = vim.fn.input("Command: ", "", "shellcmd")
+  if cmd ~= "" then
+    tab_terminal(cmd, true)
+  end
+end, { desc = "Run command in [t]ab terminal" })
 
 map("n", "<leader>e", "<cmd>Explore<cr>", { desc = "Open file [e]xplorer" })
 
@@ -844,6 +778,11 @@ if vim.fn.executable("lazygit") == 1 then
     tab_terminal({ "lazygit" })
   end, { desc = "Lazy[g]it" })
 end
+if vim.fn.executable("lazysql") == 1 then
+  map("n", "<leader>D", function()
+    tab_terminal({ "lazysql" })
+  end, { desc = "Lazysql [D]atabase" })
+end
 map("n", "<leader>gf", function()
   vim.cmd("Git log --oneline -- " .. vim.fn.fnameescape(vim.fn.expand("%")))
 end, { desc = "Git Current [f]ile History" })
@@ -866,34 +805,21 @@ map("c", "<c-s>", function()
   flash.toggle()
 end, { desc = "Toggle Flash Search" })
 
-map("n", "<F5>", function()
-  require("dap").continue()
-end, { desc = "Run/Continue" })
-map("n", "<F7>", function()
-  require("dap").step_into()
-end, { desc = "Step Into" })
-map("n", "<F4>", function()
-  require("dap").run_last()
-end, { desc = "Run Last" })
-map("n", "<F9>", function()
-  require("dap").step_out()
-end, { desc = "Step Out" })
-map("n", "<F8>", function()
-  require("dap").step_over()
-end, { desc = "Step Over" })
-map("n", "<F10>", function()
-  require("dap").terminate()
-end, { desc = "Terminate" })
-map("n", "<leader>dv", function()
-  require("dap-view").toggle()
-end, { desc = "Toggle DAP [v]iew" })
-map("n", "<leader>db", function()
-  require("dap").toggle_breakpoint()
-end, { desc = "Toggle [b]reakpoint" })
-map("n", "<leader>dB", function()
-  local condition = vim.fn.input("Breakpoint condition (optional): ")
-  local hit_condition = vim.fn.input("Hit count (optional): ")
-  condition = condition ~= "" and condition or nil
-  hit_condition = hit_condition ~= "" and hit_condition or nil
-  require("dap").toggle_breakpoint(condition, hit_condition)
-end, { desc = "Advanced [B]reakpoint" })
+-- [[ Debugging ]] tdb (pip install textual-debugger): TUI debugger over DAP for Python, Go and C/C++
+map("n", "<leader>dd", function()
+  if vim.fn.executable("tdb") ~= 1 then
+    vim.notify("tdb not found: pip install textual-debugger", vim.log.levels.ERROR)
+    return
+  end
+  local cmd = { "tdb" }
+  if vim.bo.filetype == "c" or vim.bo.filetype == "cpp" then
+    local program = vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+    if program == "" then
+      return
+    end
+    table.insert(cmd, program)
+  else
+    table.insert(cmd, vim.fn.expand("%:p"))
+  end
+  tab_terminal(cmd)
+end, { desc = "[d]ebug current file with tdb" })
