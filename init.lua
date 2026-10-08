@@ -86,7 +86,6 @@ vim.pack.add({
   "https://github.com/folke/flash.nvim",
   "https://github.com/tpope/vim-sleuth",
   "https://github.com/chentoast/marks.nvim",
-  "https://github.com/albenisolmos/autochdir.nvim",
 })
 
 vim.cmd("packadd nvim.undotree")
@@ -98,7 +97,7 @@ vim.cmd.colorscheme("tokyonight")
 -- [[ Plugin setup ]]
 -- Basic mappings off: they replace the built-in gO (LSP symbols) and insert-mode <C-s> (signature help).
 -- Its basic autocommands (yank highlight, insert on TermOpen) stay on.
-require("mini.basics").setup({ mappings = { basic = false } })
+require("mini.basics").setup({ mappings = { basic = false, windows = true } })
 require("mini.bufremove").setup()
 require("mini.move").setup()
 require("mini.pairs").setup()
@@ -465,31 +464,25 @@ require("conform").setup({
 
 require("flash").setup({})
 
-require("autochdir").setup({
-  generic_flags = { "README.md", ".git", ".gitignore", ".dockerignore" },
-})
+-- cd to the project root (nearest parent with one of these) when entering a buffer
+MiniMisc.setup_auto_root({ "README.md", ".git", ".gitignore", ".dockerignore" })
 
--- [[ Sessions ]] one per working directory, saved on exit (replaces persistence.nvim)
+-- [[ Sessions ]] mini.sessions: one per working directory, saved on exit
 vim.opt.sessionoptions = { "buffers", "curdir", "folds", "help", "tabpages", "winsize" }
-local session_dir = vim.fn.stdpath("state") .. "/sessions/"
+local session_dir = vim.fn.stdpath("state") .. "/sessions"
 vim.fn.mkdir(session_dir, "p")
+require("mini.sessions").setup({ autowrite = false, directory = session_dir, file = "" })
 
-local function session_file()
-  return session_dir .. vim.fn.getcwd():gsub("[\\/:]", "%%") .. ".vim"
+-- the directory name, so two projects with the same folder name share a session
+local function session_name()
+  local name = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+  return name ~= "" and name or "root"
 end
 
-local function load_session(file)
-  if file and vim.uv.fs_stat(file) then
-    vim.cmd.source(vim.fn.fnameescape(file))
+local function restore_session()
+  if vim.uv.fs_stat(session_dir .. "/" .. session_name()) then
+    MiniSessions.read(session_name())
   end
-end
-
-local function list_sessions()
-  local files = vim.fn.glob(session_dir .. "*.vim", false, true)
-  table.sort(files, function(a, b)
-    return vim.fn.getftime(a) > vim.fn.getftime(b)
-  end)
-  return files
 end
 
 vim.api.nvim_create_autocmd("VimLeavePre", {
@@ -500,7 +493,7 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
       return buf.name ~= "" and vim.bo[buf.bufnr].buftype == ""
     end)
     if has_file then
-      vim.cmd.mksession({ vim.fn.fnameescape(session_file()), bang = true })
+      MiniSessions.write(session_name(), { force = true, verbose = false })
     end
   end,
 })
@@ -530,9 +523,7 @@ starter.setup({
     { name = "Recent files", action = "lua MiniExtra.pickers.oldfiles()", section = "" },
     {
       name = "Session restore",
-      action = function()
-        load_session(session_file())
-      end,
+      action = restore_session,
       section = "",
     },
     {
@@ -555,31 +546,12 @@ vim.o.wildoptions = "pum,fuzzy"
 -- [[ Keymaps ]]
 local map = vim.keymap.set
 
--- Enter accepts the selected completion item, otherwise lets mini.pairs handle it
-map("i", "<CR>", function()
-  if vim.fn.complete_info({ "selected" }).selected ~= -1 then
-    return "\25" -- <C-y>
-  end
-  return MiniPairs.cr()
-end, { expr = true, replace_keycodes = false, desc = "Accept completion / newline" })
-
+-- Enter accepts the selected completion item, otherwise lets mini.pairs handle it;
 -- Tab/S-Tab move through the completion menu, otherwise jump between snippet fields
-map("i", "<Tab>", function()
-  if vim.fn.pumvisible() == 1 then
-    return "<C-n>"
-  elseif vim.snippet.active({ direction = 1 }) then
-    return "<Cmd>lua vim.snippet.jump(1)<CR>"
-  end
-  return "<Tab>"
-end, { expr = true, desc = "Next completion / snippet field" })
-map("i", "<S-Tab>", function()
-  if vim.fn.pumvisible() == 1 then
-    return "<C-p>"
-  elseif vim.snippet.active({ direction = -1 }) then
-    return "<Cmd>lua vim.snippet.jump(-1)<CR>"
-  end
-  return "<S-Tab>"
-end, { expr = true, desc = "Prev completion / snippet field" })
+local multistep = require("mini.keymap").map_multistep
+multistep("i", "<CR>", { "pmenu_accept", "minipairs_cr" })
+multistep("i", "<Tab>", { "pmenu_next", "vimsnippet_next" })
+multistep("i", "<S-Tab>", { "pmenu_prev", "vimsnippet_prev" })
 
 map("n", "<Esc>", function()
   for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -598,16 +570,6 @@ map("n", "dm-", marks.delete_line, { desc = "Delete marks on line" })
 map("n", "dm<space>", marks.delete_buf, { desc = "Delete marks in buffer" })
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic quickfi[x] list" })
 map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
-
-map("n", "<C-h>", "<C-w><C-h>", { desc = "Move focus to the left window" })
-map("n", "<C-l>", "<C-w><C-l>", { desc = "Move focus to the right window" })
-map("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower window" })
-map("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
-
-map("n", "<C-Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
-map("n", "<C-Down>", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
-map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Width" })
-map("n", "<C-Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
 
 -- Run a program in its own tab; the tab closes when the program exits (unless keep_open)
 local function tab_terminal(cmd, keep_open)
@@ -708,19 +670,12 @@ map("n", "<leader>cf", function()
   require("conform").format({ async = true, lsp_format = "fallback" })
 end, { desc = "[f]ormat buffer" })
 
-map("n", "<leader>qs", function()
-  load_session(session_file())
-end, { desc = "Load [s]ession for current dir" })
+map("n", "<leader>qs", restore_session, { desc = "Load [s]ession for current dir" })
 map("n", "<leader>qS", function()
-  vim.ui.select(list_sessions(), {
-    prompt = "Session",
-    format_item = function(file)
-      return (vim.fn.fnamemodify(file, ":t:r"):gsub("%%", "/"))
-    end,
-  }, load_session)
+  MiniSessions.select("read")
 end, { desc = "Find [S]ession" })
 map("n", "<leader>ql", function()
-  load_session(list_sessions()[1])
+  MiniSessions.read()
 end, { desc = "Load [l]ast session" })
 
 map("n", "[e", function()
