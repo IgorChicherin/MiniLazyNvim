@@ -93,7 +93,7 @@ require("tokyonight").setup({ style = "moon", light_style = "day" })
 vim.cmd.colorscheme("tokyonight")
 
 -- [[ Plugin setup ]]
--- Basic mappings off: they replace the built-in gO (LSP symbols) and insert-mode <C-s> (signature help).
+-- Basic mappings off: they replace the built-in gO (LSP symbols); their <C-s> save is mapped under Keymaps.
 -- Its basic autocommands (yank highlight, insert on TermOpen) stay on.
 require("mini.basics").setup({ mappings = { basic = false, windows = true } })
 require("mini.bufremove").setup()
@@ -609,6 +609,9 @@ end, { desc = "Open file [e]xplorer" })
 map("n", "<leader><leader>", MiniPick.builtin.files, { desc = "Find file" })
 
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "[q]uit All" })
+
+-- replaces insert-mode <C-s> signature help; it stays on <C-k>
+map({ "n", "x", "s", "i" }, "<C-s>", "<cmd>write<cr><esc>", { desc = "Save file" })
 
 map("n", "<leader>sf", MiniPick.builtin.files, { desc = "Search [f]ile" })
 map("n", "<leader>sb", MiniPick.builtin.buffers, { desc = "Search [b]uffer" })
