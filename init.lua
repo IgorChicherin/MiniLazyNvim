@@ -230,12 +230,40 @@ require("mini.misc").setup({ make_global = { "put", "put_text" } })
 
 require("mason").setup({})
 
--- [[ Completion ]] built-in: LSP (omnifunc) first, then up to 5 words from the current buffer, as you type
-vim.o.autocomplete = true
-vim.o.complete = "o,.^5"
+-- [[ Completion ]] mini.completion: LSP first, then buffer words; <C-Space> forces it, <M-Space> forces buffer words
 -- noinsert: the first item is preselected (not inserted), so <CR> accepts it right away
 vim.o.completeopt = "menuone,noinsert,popup,fuzzy"
 vim.o.pumheight = 10
+-- clangd fixes "ptr.Member" to "ptr->Member" with an edit that starts at the ".". Start the popup after the "."
+-- instead (so the typed text still matches the items) and let mini.completion apply the edit as a snippet.
+require("mini.completion").setup({
+  lsp_completion = {
+    process_items = function(items, base)
+      for _, item in ipairs(items) do
+        local edit = item.textEdit
+        if edit and edit.newText and edit.newText:find("^[%.%-]") then
+          item.insertTextFormat = vim.lsp.protocol.InsertTextFormat.Snippet
+          if not edit.newText:find("[^\\]%${?%w") then
+            edit.newText = edit.newText:gsub("[%$}\\]", "\\%0") .. "$0"
+          end
+        end
+      end
+      return MiniCompletion.default_process_items(items, base)
+    end,
+  },
+})
+local completefunc_lsp = MiniCompletion.completefunc_lsp
+MiniCompletion.completefunc_lsp = function(findstart, base)
+  local start = completefunc_lsp(findstart, base)
+  if findstart == 1 and type(start) == "number" and start >= 0 then
+    local line = vim.api.nvim_get_current_line()
+    local word_start = vim.fn.match(line:sub(1, vim.api.nvim_win_get_cursor(0)[2]), "\\k*$")
+    if word_start > start and line:sub(start + 1, word_start):find("^[%.>%-]+$") then
+      return word_start
+    end
+  end
+  return start
+end
 
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("user-lsp-attach", { clear = true }),
@@ -259,11 +287,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
     map("<leader>ca", vim.lsp.buf.code_action, "Code action", { "n", "x", "v" })
 
     local client = vim.lsp.get_client_by_id(event.data.client_id)
-    if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_completion) then
-      -- trigger characters (".", "->", ...) and snippet expansion on accept
-      vim.lsp.completion.enable(true, client.id, event.buf, { autotrigger = true })
-      map("<C-Space>", vim.lsp.completion.get, "Trigger completion", "i")
-    end
     if client and client.name == "clangd" then
       map("<leader>ch", "<cmd>LspClangdSwitchSourceHeader<cr>", "Switch Source/[h]eader (C/C++)")
     end
