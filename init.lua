@@ -482,66 +482,52 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
   end,
 })
 
--- [[ Find / grep ]] built-in :find, :buffer and :grep (replaces the snacks picker)
--- fd is installed as "fdfind" on Debian/Ubuntu
-local fd = vim.fn.executable("fd") == 1 and "fd" or vim.fn.executable("fdfind") == 1 and "fdfind" or nil
-if fd then
-  local files
-  vim.api.nvim_create_autocmd("CmdlineEnter", {
-    desc = "Refresh the :find file list once per command line",
-    group = vim.api.nvim_create_augroup("user-find-files", { clear = true }),
-    callback = function()
-      files = nil
-    end,
-  })
-  function _G.FindFiles(arg)
-    files = files or vim.fn.systemlist({ fd, "--type", "f", "--hidden", "--exclude", ".git" })
-    return arg == "" and files or vim.fn.matchfuzzy(files, arg)
-  end
-  vim.o.findfunc = "v:lua.FindFiles"
-else
-  -- without fd, :find searches subdirectories through 'path'
-  vim.opt.path:append("**")
-end
+-- [[ Pickers ]] mini.pick (replaces the built-in :find/:buffer/:grep setup); files and grep use rg, fd or git
+require("mini.files").setup()
+require("mini.pick").setup()
+require("mini.extra").setup()
+vim.ui.select = MiniPick.ui_select
 
-if vim.fn.executable("rg") == 1 then
-  vim.o.grepprg = "rg --vimgrep --smart-case --hidden --glob=!.git"
-end
-
-vim.api.nvim_create_autocmd("QuickFixCmdPost", {
-  desc = "Open the quickfix list after :grep",
-  group = vim.api.nvim_create_augroup("user-grep", { clear = true }),
-  pattern = "grep",
-  command = "cwindow",
+-- [[ Start page ]] mini.starter: press an item's first letter to run it
+local starter = require("mini.starter")
+starter.setup({
+  evaluate_single = true,
+  header = table.concat({
+    "███╗   ███╗ ██╗███╗   ██╗ ██╗",
+    "████╗ ████║███║████╗  ██║███║",
+    "██╔████╔██║╚██║██╔██╗ ██║╚██║",
+    "██║╚██╔╝██║ ██║██║╚██╗██║ ██║",
+    "██║ ╚═╝ ██║ ██║██║ ╚████║ ██║",
+    "╚═╝     ╚═╝ ╚═╝╚═╝  ╚═══╝ ╚═╝",
+  }, "\n"),
+  items = {
+    { name = "Find file", action = "lua MiniPick.builtin.files()", section = "" },
+    { name = "New file", action = "enew | startinsert", section = "" },
+    { name = "Grep text", action = "lua MiniPick.builtin.grep_live()", section = "" },
+    { name = "Recent files", action = "lua MiniExtra.pickers.oldfiles()", section = "" },
+    {
+      name = "Session restore",
+      action = function()
+        load_session(session_file())
+      end,
+      section = "",
+    },
+    {
+      name = "Config",
+      action = function()
+        MiniPick.builtin.files(nil, { source = { cwd = vim.fn.stdpath("config") } })
+      end,
+      section = "",
+    },
+    { name = "Quit", action = "qa", section = "" },
+  },
+  content_hooks = { starter.gen_hook.aligning("center", "center") },
+  footer = "",
 })
 
--- Completion popup as you type :find, :buffer, :help and :colorscheme arguments
+-- Command-line completion popup
 vim.o.wildmode = "noselect:lastused,full"
 vim.o.wildoptions = "pum,fuzzy"
--- (and command names too, when the command line was opened with <leader>sC)
-local live_complete =
-  { find = true, fin = true, b = true, buffer = true, h = true, help = true, colo = true, colorscheme = true }
-local complete_commands = false
-local cmdline_group = vim.api.nvim_create_augroup("user-cmdline-complete", { clear = true })
-vim.api.nvim_create_autocmd("CmdlineChanged", {
-  group = cmdline_group,
-  pattern = ":",
-  callback = function()
-    if complete_commands or live_complete[vim.fn.getcmdline():match("^(%a+)%s")] then
-      vim.fn.wildtrigger()
-    end
-  end,
-})
-vim.api.nvim_create_autocmd("CmdlineLeave", {
-  group = cmdline_group,
-  callback = function()
-    complete_commands = false
-  end,
-})
-local function search_commands()
-  complete_commands = true
-  vim.api.nvim_feedkeys(":", "n", false)
-end
 
 -- [[ Keymaps ]]
 local map = vim.keymap.set
@@ -627,26 +613,34 @@ map("n", "<leader>t", function()
   end
 end, { desc = "Run command in [t]ab terminal" })
 
-map("n", "<leader>e", "<cmd>Explore<cr>", { desc = "Open file [e]xplorer" })
+-- opens at the current file, or at the working directory for unnamed buffers
+map("n", "<leader>e", function()
+  local path = vim.api.nvim_buf_get_name(0)
+  MiniFiles.open(vim.uv.fs_stat(path) and path or nil)
+end, { desc = "Open file [e]xplorer" })
 
-map("n", "<leader><leader>", ":find ", { desc = "Find file" })
+map("n", "<leader><leader>", MiniPick.builtin.files, { desc = "Find file" })
 
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "[q]uit All" })
 
-map("n", "<leader>sf", ":find ", { desc = "Search [f]ile" })
-map("n", "<leader>sb", ":buffer ", { desc = "Search [b]uffer" })
-map("n", "<leader>sg", ":silent grep! ", { desc = "Search [g]rep" })
+map("n", "<leader>sf", MiniPick.builtin.files, { desc = "Search [f]ile" })
+map("n", "<leader>sb", MiniPick.builtin.buffers, { desc = "Search [b]uffer" })
+map("n", "<leader>sg", MiniPick.builtin.grep_live, { desc = "Search [g]rep" })
 map("n", "<leader>sc", function()
   vim.cmd.edit(vim.fn.stdpath("config") .. "/init.lua")
 end, { desc = "Search [c]onfig file" })
-map("n", "<leader>sh", "q:", { desc = "Search command [h]istory" })
-map("n", "<leader>sC", search_commands, { desc = "Search [C]ommands" })
-map("n", "<leader>sH", ":help ", { desc = "Search [H]elp" })
-map("n", "<leader>sk", "<cmd>map<cr>", { desc = "Search [k]eymaps" })
-map("n", "<leader>sm", "<cmd>marks<cr>", { desc = "Search [m]arks" })
-map("n", "<leader>sq", "<cmd>copen<cr>", { desc = "Search [q]uickfix" })
-map("n", "<leader>sr", "<cmd>registers<cr>", { desc = "Search [r]egisters" })
-map("n", "<leader>uC", ":colorscheme ", { desc = "UI [C]olorschemes" })
+map("n", "<leader>sh", function()
+  MiniExtra.pickers.history({ scope = ":" })
+end, { desc = "Search command [h]istory" })
+map("n", "<leader>sC", MiniExtra.pickers.commands, { desc = "Search [C]ommands" })
+map("n", "<leader>sH", MiniPick.builtin.help, { desc = "Search [H]elp" })
+map("n", "<leader>sk", MiniExtra.pickers.keymaps, { desc = "Search [k]eymaps" })
+map("n", "<leader>sm", MiniExtra.pickers.marks, { desc = "Search [m]arks" })
+map("n", "<leader>sq", function()
+  MiniExtra.pickers.list({ scope = "quickfix" })
+end, { desc = "Search [q]uickfix" })
+map("n", "<leader>sr", MiniExtra.pickers.registers, { desc = "Search [r]egisters" })
+map("n", "<leader>uC", MiniExtra.pickers.colorschemes, { desc = "UI [C]olorschemes" })
 map("n", "<leader>sGs", "<cmd>Git status<cr>", { desc = "Search Git [s]tatus" })
 
 map("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
