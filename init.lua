@@ -16,8 +16,6 @@ vim.schedule(function()
   vim.opt.clipboard = "unnamedplus"
 end)
 
-require("vim._core.ui2").enable({})
-
 vim.opt.breakindent = true
 vim.opt.undofile = true
 vim.opt.ignorecase = true
@@ -297,21 +295,9 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
--- Show LSP progress via the built-in progress messages (replaces fidget)
-vim.api.nvim_create_autocmd("LspProgress", {
-  group = vim.api.nvim_create_augroup("user-lsp-progress", { clear = true }),
-  callback = function(ev)
-    local value = ev.data.params.value
-    vim.api.nvim_echo({ { value.message or "done" } }, false, {
-      id = "lsp." .. ev.data.params.token,
-      kind = "progress",
-      source = "vim.lsp",
-      title = value.title,
-      status = value.kind ~= "end" and "running" or "success",
-      percent = value.percentage,
-    })
-  end,
-})
+-- Notifications and LSP progress in a corner window (replaces fidget)
+require("mini.notify").setup()
+vim.notify = MiniNotify.make_notify()
 
 if vim.g.have_nerd_font then
   local signs = { ERROR = " ", WARN = " ", INFO = " ", HINT = " " }
