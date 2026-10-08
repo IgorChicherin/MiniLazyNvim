@@ -557,6 +557,8 @@ map("n", "dm<space>", marks.delete_buf, { desc = "Delete marks in buffer" })
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic quickfi[x] list" })
 map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
+map("n", "<C-w>c", "<cmd>tabclose<cr>", { desc = "Close tab" })
+
 -- Run a program in its own tab; the tab closes when the program exits (unless keep_open)
 local function tab_terminal(cmd, keep_open)
   vim.cmd.tabnew()
