@@ -223,7 +223,6 @@ statusline.section_fileinfo = function()
 end
 
 statusline.setup({ use_icons = vim.g.have_nerd_font })
-require("mini.misc").setup({ make_global = { "put", "put_text" } })
 
 require("mason").setup({})
 
@@ -450,9 +449,6 @@ require("conform").setup({
 
 require("flash").setup({})
 
--- cd to the project root (nearest parent with one of these) when entering a buffer
-MiniMisc.setup_auto_root({ "README.md", ".git", ".gitignore", ".dockerignore" })
-
 -- [[ Sessions ]] mini.sessions: one per working directory, saved on exit
 vim.opt.sessionoptions = { "buffers", "curdir", "folds", "help", "tabpages", "winsize" }
 local session_dir = vim.fn.stdpath("state") .. "/sessions"
@@ -567,13 +563,24 @@ map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
 map("n", "<C-w>c", "<cmd>tabclose<cr>", { desc = "Close tab" })
 
--- Run a program in its own tab; the tab closes when the program exits (unless keep_open)
+-- Project root of the current buffer: the nearest parent with one of these
+-- (mini.misc find_root, no auto cd), else the working directory
+local root_markers = { "README.md", ".git", ".gitignore", ".dockerignore" }
+local find_root = require("mini.misc").find_root
+local function buf_root()
+  return find_root(0, root_markers) or vim.fn.getcwd()
+end
+
+-- Run a program in its own tab, in the current buffer's project root;
+-- the tab closes when the program exits (unless keep_open)
 local function tab_terminal(cmd, keep_open)
+  local root = buf_root()
   vim.cmd.tabnew()
   local buf = vim.api.nvim_get_current_buf()
   vim.bo[buf].buflisted = false
   vim.fn.jobstart(cmd, {
     term = true,
+    cwd = root,
     on_exit = function()
       if keep_open then
         return
@@ -639,25 +646,45 @@ map("n", "<leader>bo", function()
 end, { desc = "Delete [o]ther Buffers" })
 map("n", "<leader>bD", "<cmd>:bd<cr>", { desc = "[D]elete Buffer and Window" })
 
--- One terminal in a bottom split, hidden and shown again with the same key
-local term_buf
+-- One terminal per project root in a bottom split, hidden and shown again with the same key
+-- (like snacks.nvim's terminal with LazyVim's root): the shell starts in the current buffer's root
+local term_bufs = {} -- root -> terminal buffer
+
 local function toggle_terminal()
-  local split = "botright " .. bottom_height() .. "split"
-  if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
-    local win = vim.fn.bufwinid(term_buf)
+  -- inside a terminal window: hide it
+  if vim.b.term_root then
+    vim.api.nvim_win_close(0, false)
+    return
+  end
+  local root = buf_root()
+  local buf = term_bufs[root]
+  if not (buf and vim.api.nvim_buf_is_valid(buf)) then
+    buf = nil
+  end
+  local open_win = buf and vim.fn.bufwinid(buf) or -1
+  -- one bottom terminal at a time: hide the shown one (another project's, or this one to toggle)
+  for _, b in pairs(term_bufs) do
+    local win = vim.api.nvim_buf_is_valid(b) and vim.fn.bufwinid(b) or -1
     if win ~= -1 then
       vim.api.nvim_win_close(win, false)
-      return
     end
-    vim.cmd(split)
-    vim.api.nvim_win_set_buf(0, term_buf)
-    vim.cmd.startinsert()
-  else
-    vim.cmd(split .. " | terminal")
-    term_buf = vim.api.nvim_get_current_buf()
-    -- keep it out of the tabline and :bnext/:bprevious
-    vim.bo[term_buf].buflisted = false
   end
+  if open_win ~= -1 then
+    return
+  end
+
+  vim.cmd("botright " .. bottom_height() .. "split")
+  if buf then
+    vim.api.nvim_win_set_buf(0, buf)
+    vim.cmd.startinsert()
+    return
+  end
+  -- unlisted: kept out of the tabline and :bnext/:bprevious
+  buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_win_set_buf(0, buf)
+  vim.fn.jobstart({ vim.o.shell }, { term = true, cwd = root })
+  vim.b[buf].term_root = root
+  term_bufs[root] = buf
 end
 map({ "n", "t" }, "<c-/>", toggle_terminal, { desc = "Toggle Terminal" })
 map({ "n", "t" }, "<c-_>", toggle_terminal, { desc = "Toggle Terminal" })
