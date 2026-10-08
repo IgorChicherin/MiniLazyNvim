@@ -485,7 +485,8 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 })
 
 -- [[ Pickers ]] mini.pick (replaces the built-in :find/:buffer/:grep setup); files and grep use rg, fd or git
-require("mini.files").setup()
+-- <CR> applies pending file system edits (default "=")
+require("mini.files").setup({ mappings = { synchronize = "<CR>" } })
 require("mini.pick").setup()
 require("mini.extra").setup()
 vim.ui.select = MiniPick.ui_select
