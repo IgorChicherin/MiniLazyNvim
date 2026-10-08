@@ -533,6 +533,11 @@ vim.o.wildoptions = "pum,fuzzy"
 -- [[ Keymaps ]]
 local map = vim.keymap.set
 
+-- Height of bottom splits (terminal, undo tree): 30% of the screen, recomputed on every open
+local function bottom_height()
+  return math.floor(vim.o.lines * 0.3)
+end
+
 -- Enter accepts the selected completion item, otherwise lets mini.pairs handle it;
 -- Tab/S-Tab move through the completion menu, otherwise jump between snippet fields
 local multistep = require("mini.keymap").map_multistep
@@ -549,7 +554,9 @@ map("n", "<Esc>", function()
   vim.cmd.nohlsearch()
 end)
 
-map("n", "<leader>U", require("undotree").open, { desc = "[U]ndo tree" })
+map("n", "<leader>U", function()
+  require("undotree").open({ command = "botright " .. bottom_height() .. "new" })
+end, { desc = "[U]ndo tree" })
 
 local marks = require("marks")
 map("n", "dm", marks.delete, { desc = "Delete mark" })
@@ -635,17 +642,18 @@ map("n", "<leader>bD", "<cmd>:bd<cr>", { desc = "[D]elete Buffer and Window" })
 -- One terminal in a bottom split, hidden and shown again with the same key
 local term_buf
 local function toggle_terminal()
+  local split = "botright " .. bottom_height() .. "split"
   if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
     local win = vim.fn.bufwinid(term_buf)
     if win ~= -1 then
       vim.api.nvim_win_close(win, false)
       return
     end
-    vim.cmd("botright 23split")
+    vim.cmd(split)
     vim.api.nvim_win_set_buf(0, term_buf)
     vim.cmd.startinsert()
   else
-    vim.cmd("botright 23split | terminal")
+    vim.cmd(split .. " | terminal")
     term_buf = vim.api.nvim_get_current_buf()
     -- keep it out of the tabline and :bnext/:bprevious
     vim.bo[term_buf].buflisted = false
