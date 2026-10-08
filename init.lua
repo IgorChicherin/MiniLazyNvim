@@ -573,7 +573,6 @@ local function tab_terminal(cmd, keep_open)
       end)
     end,
   })
-  vim.cmd.startinsert()
 end
 
 -- Any shell command in its own tab; the tab stays open after exit so the output can be read
