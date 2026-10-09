@@ -198,7 +198,7 @@ statusline.section_location = function()
 end
 
 statusline.section_filename = function()
-  return "%f"
+  return "%t"
 end
 
 statusline.section_fileinfo = function()
@@ -487,8 +487,16 @@ require("mini.pick").setup()
 require("mini.extra").setup()
 vim.ui.select = MiniPick.ui_select
 
+-- Project root of the current buffer: the nearest parent with one of these
+-- (mini.misc find_root, no auto cd), else the buffer's own directory, else the working directory
+local root_markers = { "README.md", ".git", ".gitignore", ".dockerignore" }
+local find_root = require("mini.misc").find_root
+local function buf_root()
+  return find_root(0, root_markers, vim.fs.dirname) or vim.fn.getcwd()
+end
+
 -- File picker; <M-h> / <M-i> toggle hidden / gitignored files while it is open
-local files = { hidden = false, ignored = false, listing = nil }
+local files = { hidden = false, ignored = false, listing = nil, cwd = nil }
 
 local function files_reload()
   local cmd = { "rg", "--files", "--color=never", "-g", "!.git" }
@@ -504,7 +512,7 @@ local function files_reload()
   if files.listing then
     pcall(files.listing.kill)
   end
-  files.listing = MiniPick.set_picker_items_from_cli(cmd)
+  files.listing = MiniPick.set_picker_items_from_cli(cmd, { spawn_opts = { cwd = files.cwd } })
 end
 
 local function files_toggle_hidden()
@@ -519,15 +527,20 @@ end
 
 local function find_files()
   if vim.fn.executable("rg") == 0 then
-    return MiniPick.builtin.files()
+    return MiniPick.builtin.files(nil, { source = { cwd = buf_root() } })
   end
-  files.hidden, files.ignored, files.listing = false, false, nil
+  files.hidden, files.ignored, files.listing, files.cwd = false, false, nil, buf_root()
   MiniPick.builtin.files({ tool = "rg" }, {
+    source = { cwd = files.cwd },
     mappings = {
       toggle_hidden = { char = "<M-h>", func = files_toggle_hidden },
       toggle_ignored = { char = "<M-i>", func = files_toggle_ignored },
     },
   })
+end
+
+local function grep_files()
+  MiniPick.builtin.grep_live(nil, { source = { cwd = buf_root() } })
 end
 
 -- [[ Start page ]] mini.starter: press an item's first letter to run it
@@ -545,7 +558,7 @@ starter.setup({
   items = {
     { name = "Find file", action = find_files, section = "" },
     { name = "New file", action = "enew | startinsert", section = "" },
-    { name = "Grep text", action = "lua MiniPick.builtin.grep_live()", section = "" },
+    { name = "Grep text", action = grep_files, section = "" },
     { name = "Recent files", action = "lua MiniExtra.pickers.oldfiles()", section = "" },
     {
       name = "Session restore",
@@ -614,14 +627,6 @@ vim.api.nvim_create_autocmd("TermOpen", {
 
 map("n", "<C-w>c", "<cmd>tabclose<cr>", { desc = "Close tab" })
 
--- Project root of the current buffer: the nearest parent with one of these
--- (mini.misc find_root, no auto cd), else the working directory
-local root_markers = { "README.md", ".git", ".gitignore", ".dockerignore" }
-local find_root = require("mini.misc").find_root
-local function buf_root()
-  return find_root(0, root_markers) or vim.fn.getcwd()
-end
-
 -- Run a program in its own tab, in the current buffer's project root;
 -- the tab closes when the program exits successfully (unless opts.keep_open, or it failed: the output stays readable)
 -- opts.raw_esc: pass <Esc><Esc> to the program instead of leaving terminal mode
@@ -671,7 +676,7 @@ map({ "n", "x", "s", "i" }, "<C-s>", "<cmd>write<cr><esc>", { desc = "Save file"
 
 map("n", "<leader>sf", find_files, { desc = "Search [f]ile" })
 map("n", "<leader>sb", MiniPick.builtin.buffers, { desc = "Search [b]uffer" })
-map("n", "<leader>sg", MiniPick.builtin.grep_live, { desc = "Search [g]rep" })
+map("n", "<leader>sg", grep_files, { desc = "Search [g]rep" })
 map("n", "<leader>sc", function()
   vim.cmd.edit(vim.fn.stdpath("config") .. "/init.lua")
 end, { desc = "Search [c]onfig file" })
