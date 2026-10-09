@@ -487,6 +487,49 @@ require("mini.pick").setup()
 require("mini.extra").setup()
 vim.ui.select = MiniPick.ui_select
 
+-- File picker; <M-h> / <M-i> toggle hidden / gitignored files while it is open
+local files = { hidden = false, ignored = false, listing = nil }
+
+local function files_reload()
+  local cmd = { "rg", "--files", "--color=never", "-g", "!.git" }
+  if files.hidden then
+    table.insert(cmd, "--hidden")
+  end
+  if files.ignored then
+    table.insert(cmd, "--no-ignore")
+  end
+  local name = "Files (rg" .. (files.hidden and " +hidden" or "") .. (files.ignored and " +ignored" or "") .. ")"
+  MiniPick.set_picker_opts({ source = { name = name } })
+  -- stop the previous listing so a slow one cannot overwrite the new items
+  if files.listing then
+    pcall(files.listing.kill)
+  end
+  files.listing = MiniPick.set_picker_items_from_cli(cmd)
+end
+
+local function files_toggle_hidden()
+  files.hidden = not files.hidden
+  files_reload()
+end
+
+local function files_toggle_ignored()
+  files.ignored = not files.ignored
+  files_reload()
+end
+
+local function find_files()
+  if vim.fn.executable("rg") == 0 then
+    return MiniPick.builtin.files()
+  end
+  files.hidden, files.ignored, files.listing = false, false, nil
+  MiniPick.builtin.files({ tool = "rg" }, {
+    mappings = {
+      toggle_hidden = { char = "<M-h>", func = files_toggle_hidden },
+      toggle_ignored = { char = "<M-i>", func = files_toggle_ignored },
+    },
+  })
+end
+
 -- [[ Start page ]] mini.starter: press an item's first letter to run it
 local starter = require("mini.starter")
 starter.setup({
@@ -500,7 +543,7 @@ starter.setup({
     "╚═╝     ╚═╝ ╚═╝╚═╝  ╚═══╝ ╚═╝",
   }, "\n"),
   items = {
-    { name = "Find file", action = "lua MiniPick.builtin.files()", section = "" },
+    { name = "Find file", action = find_files, section = "" },
     { name = "New file", action = "enew | startinsert", section = "" },
     { name = "Grep text", action = "lua MiniPick.builtin.grep_live()", section = "" },
     { name = "Recent files", action = "lua MiniExtra.pickers.oldfiles()", section = "" },
@@ -559,7 +602,15 @@ map("n", "dm", marks.delete, { desc = "Delete mark" })
 map("n", "dm-", marks.delete_line, { desc = "Delete marks on line" })
 map("n", "dm<space>", marks.delete_buf, { desc = "Delete marks in buffer" })
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic quickfi[x] list" })
-map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+
+-- terminals of programs that use <Esc> themselves (vim.b.raw_esc) keep it; leave those with <C-\><C-n>
+vim.api.nvim_create_autocmd("TermOpen", {
+  callback = function(args)
+    if not vim.b[args.buf].raw_esc then
+      vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", { buffer = args.buf, desc = "Exit terminal mode" })
+    end
+  end,
+})
 
 map("n", "<C-w>c", "<cmd>tabclose<cr>", { desc = "Close tab" })
 
@@ -572,19 +623,22 @@ local function buf_root()
 end
 
 -- Run a program in its own tab, in the current buffer's project root;
--- the tab closes when the program exits (unless keep_open)
-local function tab_terminal(cmd, keep_open)
+-- the tab closes when the program exits successfully (unless opts.keep_open, or it failed: the output stays readable)
+-- opts.raw_esc: pass <Esc><Esc> to the program instead of leaving terminal mode
+local function tab_terminal(cmd, opts)
+  opts = opts or {}
   local root = buf_root()
   vim.cmd.tabnew()
   local buf = vim.api.nvim_get_current_buf()
   vim.bo[buf].buflisted = false
   -- keep this window on the program: H/L (:bprevious/:bnext) must not swap in the other tab's buffers
   vim.wo.winfixbuf = true
+  vim.b[buf].raw_esc = opts.raw_esc
   vim.fn.jobstart(cmd, {
     term = true,
     cwd = root,
-    on_exit = function()
-      if keep_open then
+    on_exit = function(_, code)
+      if opts.keep_open or code ~= 0 then
         return
       end
       vim.schedule(function()
@@ -598,7 +652,7 @@ end
 map("n", "<leader>t", function()
   local cmd = vim.fn.input("Command: ", "", "shellcmd")
   if cmd ~= "" then
-    tab_terminal(cmd, true)
+    tab_terminal(cmd, { keep_open = true })
   end
 end, { desc = "Run command in [t]ab terminal" })
 
@@ -608,14 +662,14 @@ map("n", "<leader>e", function()
   MiniFiles.open(vim.uv.fs_stat(path) and path or nil)
 end, { desc = "Open file [e]xplorer" })
 
-map("n", "<leader><leader>", MiniPick.builtin.files, { desc = "Find file" })
+map("n", "<leader><leader>", find_files, { desc = "Find file" })
 
 map("n", "<leader>qq", "<cmd>silent! xa<cr><cmd>qa<cr>", { desc = "[q]uit All" })
 
 -- replaces insert-mode <C-s> signature help; it stays on <C-k>
 map({ "n", "x", "s", "i" }, "<C-s>", "<cmd>write<cr><esc>", { desc = "Save file" })
 
-map("n", "<leader>sf", MiniPick.builtin.files, { desc = "Search [f]ile" })
+map("n", "<leader>sf", find_files, { desc = "Search [f]ile" })
 map("n", "<leader>sb", MiniPick.builtin.buffers, { desc = "Search [b]uffer" })
 map("n", "<leader>sg", MiniPick.builtin.grep_live, { desc = "Search [g]rep" })
 map("n", "<leader>sc", function()
@@ -778,6 +832,12 @@ map("n", "<leader>w", "<c-w>", { desc = "Windows", remap = true })
 map("n", "<leader>-", "<C-W>s", { desc = "Split Window Below", remap = true })
 map("n", "<leader>|", "<C-W>v", { desc = "Split Window Right", remap = true })
 map("n", "<leader>wd", "<C-W>c", { desc = "[d]elete Window", remap = true })
+
+if vim.fn.executable("claude") == 1 then
+  map("n", "<leader>C", function()
+    tab_terminal({ "claude" }, { raw_esc = true })
+  end, { desc = "[C]laude code" })
+end
 
 if vim.fn.executable("lazygit") == 1 then
   map("n", "<leader>gg", function()
