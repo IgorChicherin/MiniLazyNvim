@@ -578,6 +578,8 @@ local function tab_terminal(cmd, keep_open)
   vim.cmd.tabnew()
   local buf = vim.api.nvim_get_current_buf()
   vim.bo[buf].buflisted = false
+  -- keep this window on the program: H/L (:bprevious/:bnext) must not swap in the other tab's buffers
+  vim.wo.winfixbuf = true
   vim.fn.jobstart(cmd, {
     term = true,
     cwd = root,
@@ -677,14 +679,19 @@ local function toggle_terminal()
   end
 
   vim.cmd("botright " .. bottom_height() .. "split")
+  -- the split copies winfixbuf from a program tab; clear it to switch buffer, then lock the window on the
+  -- terminal so H/L (:bprevious/:bnext) cannot swap other buffers in
+  vim.wo.winfixbuf = false
   if buf then
     vim.api.nvim_win_set_buf(0, buf)
+    vim.wo.winfixbuf = true
     vim.cmd.startinsert()
     return
   end
   -- unlisted: kept out of the tabline and :bnext/:bprevious
   buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_win_set_buf(0, buf)
+  vim.wo.winfixbuf = true
   vim.fn.jobstart({ vim.o.shell }, { term = true, cwd = root })
   vim.b[buf].term_root = root
   term_bufs[root] = buf
