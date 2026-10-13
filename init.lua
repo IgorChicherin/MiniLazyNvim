@@ -47,8 +47,6 @@ if vim.fn.has("win32") == 1 then
   end
 end
 
-vim.diagnostic.config({ virtual_text = false, virtual_lines = { current_line = true } })
-
 -- [[ vim.pack - Plugin manager ]]
 vim.api.nvim_create_autocmd("PackChanged", {
   callback = function(ev)
