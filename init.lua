@@ -858,6 +858,11 @@ map("n", "<leader>gf", function()
   vim.cmd("Git log --oneline -- " .. vim.fn.fnameescape(vim.fn.expand("%")))
 end, { desc = "Git Current [f]ile History" })
 map("n", "<leader>gl", "<cmd>Git log --oneline<cr>", { desc = "Git [l]og" })
+-- mini.diff: signs are always on; this shows the old lines inline; hunks: [h ]h, apply gh, reset gH
+map("n", "<leader>gd", MiniDiff.toggle_overlay, { desc = "Git [d]iff overlay" })
+map("n", "<leader>gh", function()
+  MiniExtra.pickers.git_hunks({ scope = "unstaged" })
+end, { desc = "Git [h]unks" })
 
 local flash = require("flash")
 map({ "n", "x", "o" }, "s", function()
