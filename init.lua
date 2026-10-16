@@ -482,6 +482,19 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 -- <CR> applies pending file system edits (default "=")
 require("mini.files").setup({ mappings = { synchronize = "<CR>" } })
 require("mini.pick").setup()
+-- pickers (files, grep, ...) ignore case even when the query has capitals; plain / search keeps smartcase
+vim.api.nvim_create_autocmd("User", {
+  pattern = "MiniPickStart",
+  callback = function()
+    vim.o.smartcase = false
+  end,
+})
+vim.api.nvim_create_autocmd("User", {
+  pattern = "MiniPickStop",
+  callback = function()
+    vim.o.smartcase = true
+  end,
+})
 require("mini.extra").setup()
 vim.ui.select = MiniPick.ui_select
 
@@ -834,11 +847,12 @@ end)
 map("n", "<leader>w", "<c-w>", { desc = "Windows", remap = true })
 map("n", "<leader>-", "<C-W>s", { desc = "Split Window Below", remap = true })
 map("n", "<leader>|", "<C-W>v", { desc = "Split Window Right", remap = true })
-map("n", "<leader>wd", "<C-W>c", { desc = "[d]elete Window", remap = true })
+map("n", "]t", "gt", { desc = "Next Window", remap = true })
+map("n", "[t", "gT", { desc = "Prev Window", remap = true })
 
 if vim.fn.executable("claude") == 1 then
   map("n", "<leader>C", function()
-    tab_terminal({ "claude" }, { raw_esc = true })
+    tab_terminal({ "claude" }, { raw_esc = false })
   end, { desc = "[C]laude code" })
 end
 
