@@ -143,6 +143,27 @@ require("mini.tabline").setup()
 require("mini.icons").setup()
 require("marks").setup({ default_mappings = false })
 
+-- clues for the marks that are set now (a-z in this buffer, A-Z everywhere): jump with ' and `, delete with dm
+local function mark_clues()
+  local clues = {}
+  local function add(mark)
+    local name = mark.mark:sub(2)
+    local bufnr, lnum = mark.pos[1], mark.pos[2]
+    if not name:match("^%a$") then
+      return
+    end
+    local line = vim.api.nvim_buf_is_loaded(bufnr) and vim.api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1] or ""
+    local desc = ("%s:%d %s"):format(vim.fn.fnamemodify(mark.file or vim.api.nvim_buf_get_name(bufnr), ":t"), lnum, vim.trim(line))
+    for _, keys in ipairs({ "'" .. name, "`" .. name }) do
+      table.insert(clues, { mode = { "n", "x" }, keys = keys, desc = desc })
+    end
+    table.insert(clues, { mode = "n", keys = "dm" .. name, desc = desc })
+  end
+  vim.tbl_map(add, vim.fn.getmarklist(vim.api.nvim_get_current_buf()))
+  vim.tbl_map(add, vim.fn.getmarklist())
+  return clues
+end
+
 local miniclue = require("mini.clue")
 miniclue.setup({
   window = {
@@ -157,6 +178,7 @@ miniclue.setup({
     { mode = "x", keys = "g" },
     { mode = "n", keys = "'" },
     { mode = "n", keys = "`" },
+    { mode = "n", keys = "dm" },
     { mode = "x", keys = "'" },
     { mode = "x", keys = "`" },
     { mode = "n", keys = '"' },
@@ -171,6 +193,7 @@ miniclue.setup({
     miniclue.gen_clues.builtin_completion(),
     miniclue.gen_clues.g(),
     miniclue.gen_clues.marks(),
+    mark_clues,
     miniclue.gen_clues.registers(),
     miniclue.gen_clues.windows(),
     miniclue.gen_clues.z(),
@@ -615,14 +638,21 @@ map("n", "<Esc>", function()
     end
   end
   vim.cmd.nohlsearch()
-end)
+end, { desc = "Close floats and clear search highlight" })
 
 map("n", "<leader>U", function()
   require("undotree").open({ command = "botright " .. bottom_height() .. "new" })
 end, { desc = "[U]ndo tree" })
 
 local marks = require("marks")
-map("n", "dm", marks.delete, { desc = "Delete mark" })
+map("n", "dm", function()
+  local char = vim.fn.getcharstr()
+  if char:match("^%a$") then
+    marks.mark_state:delete_mark(char)
+    -- marks.nvim skips a global mark A-Z that was set in another buffer
+    vim.cmd("silent! delmarks " .. char)
+  end
+end, { desc = "Delete mark" })
 map("n", "dm-", marks.delete_line, { desc = "Delete marks on line" })
 map("n", "dm<space>", marks.delete_buf, { desc = "Delete marks in buffer" })
 map("n", "<leader>x", vim.diagnostic.setloclist, { desc = "Open diagnostic quickfi[x] list" })
