@@ -882,12 +882,6 @@ map("n", "<leader>|", "<C-W>v", { desc = "Split Window Right", remap = true })
 map("n", "]t", "gt", { desc = "Next Window", remap = true })
 map("n", "[t", "gT", { desc = "Prev Window", remap = true })
 
-if vim.fn.executable("claude") == 1 then
-  map("n", "<leader>C", function()
-    tab_terminal({ "claude" }, { raw_esc = false })
-  end, { desc = "[C]laude code" })
-end
-
 if vim.fn.executable("lazygit") == 1 then
   map("n", "<leader>gg", function()
     tab_terminal({ "lazygit" })
