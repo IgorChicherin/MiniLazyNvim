@@ -153,7 +153,11 @@ local function mark_clues()
       return
     end
     local line = vim.api.nvim_buf_is_loaded(bufnr) and vim.api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1] or ""
-    local desc = ("%s:%d %s"):format(vim.fn.fnamemodify(mark.file or vim.api.nvim_buf_get_name(bufnr), ":t"), lnum, vim.trim(line))
+    local desc = ("%s:%d %s"):format(
+      vim.fn.fnamemodify(mark.file or vim.api.nvim_buf_get_name(bufnr), ":t"),
+      lnum,
+      vim.trim(line)
+    )
     for _, keys in ipairs({ "'" .. name, "`" .. name }) do
       table.insert(clues, { mode = { "n", "x" }, keys = keys, desc = desc })
     end
@@ -665,8 +669,6 @@ vim.api.nvim_create_autocmd("TermOpen", {
     end
   end,
 })
-
-map("n", "<C-w>c", "<cmd>tabclose<cr>", { desc = "Close tab" })
 
 -- Run a program in its own tab, in the current buffer's project root;
 -- the tab closes when the program exits successfully (unless opts.keep_open, or it failed: the output stays readable)
