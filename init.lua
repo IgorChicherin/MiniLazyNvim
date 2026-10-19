@@ -879,8 +879,16 @@ end)
 map("n", "<leader>w", "<c-w>", { desc = "Windows", remap = true })
 map("n", "<leader>-", "<C-W>s", { desc = "Split Window Below", remap = true })
 map("n", "<leader>|", "<C-W>v", { desc = "Split Window Right", remap = true })
-map("n", "]t", "gt", { desc = "Next Window", remap = true })
-map("n", "[t", "gT", { desc = "Prev Window", remap = true })
+-- leave terminal mode, then switch tab; also works from a terminal
+-- (in terminal mode "]" waits 'timeoutlen' for "t", so a literal "]" typed there is delayed)
+local function switch_tab(cmd)
+  return function()
+    vim.cmd.stopinsert()
+    vim.cmd(cmd)
+  end
+end
+map({ "n", "t" }, "]t", switch_tab("tabnext"), { desc = "Next Tab" })
+map({ "n", "t" }, "[t", switch_tab("tabprevious"), { desc = "Prev Tab" })
 
 if vim.fn.executable("lazygit") == 1 then
   map("n", "<leader>gg", function()
