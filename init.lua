@@ -696,11 +696,11 @@ local function tab_terminal(cmd, opts)
   })
 end
 
--- Any shell command in its own tab; the tab stays open after exit so the output can be read
+-- Any shell command in its own tab; closes on success like lazygit, stays open on failure
 map("n", "<leader>t", function()
   local cmd = vim.fn.input("Command: ", "", "shellcmd")
   if cmd ~= "" then
-    tab_terminal(cmd, { keep_open = true })
+    tab_terminal(cmd)
   end
 end, { desc = "Run command in [t]ab terminal" })
 
