@@ -890,6 +890,34 @@ end
 map({ "n", "t" }, "]t", switch_tab("tabnext"), { desc = "Next Tab" })
 map({ "n", "t" }, "[t", switch_tab("tabprevious"), { desc = "Prev Tab" })
 
+-- one item per tab page: its number, the buffer in its current window and the window count
+local function pick_tab()
+  local items = {}
+  for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
+    local win = vim.api.nvim_tabpage_get_win(tab)
+    local name = vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win))
+    name = name == "" and "[No Name]" or vim.fn.fnamemodify(name, ":~:.")
+    local wins = #vim.api.nvim_tabpage_list_wins(tab)
+    local text = ("%d  %s%s"):format(vim.api.nvim_tabpage_get_number(tab), name, wins > 1 and (" (%d windows)"):format(wins) or "")
+    table.insert(items, { text = text, tab = tab })
+  end
+  MiniPick.start({
+    source = {
+      name = "Tabs",
+      items = items,
+      choose = function(item)
+        -- deferred: closing the picker refocuses the window it was opened from, which undoes an immediate switch
+        vim.schedule(function()
+          if item and vim.api.nvim_tabpage_is_valid(item.tab) then
+            vim.api.nvim_set_current_tabpage(item.tab)
+          end
+        end)
+      end,
+    },
+  })
+end
+map("n", "<leader>st", pick_tab, { desc = "Search [t]ab" })
+
 if vim.fn.executable("lazygit") == 1 then
   map("n", "<leader>gg", function()
     tab_terminal({ "lazygit" })
