@@ -690,6 +690,10 @@ local function tab_terminal(cmd, opts)
         return
       end
       vim.schedule(function()
+        -- close the window first: deleting the buffer of the tab's only window would leave an empty buffer in it
+        for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+          pcall(vim.api.nvim_win_close, win, true)
+        end
         pcall(vim.api.nvim_buf_delete, buf, { force = true })
       end)
     end,
